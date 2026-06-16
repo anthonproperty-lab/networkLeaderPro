@@ -10,7 +10,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    # Mengaktifkan variabel lingkungan agar menggunakan Node 24 sesuai saran GitHub
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -21,11 +20,10 @@ jobs:
     - name: Setup Node.js 24
       uses: actions/setup-node@v4
       with:
-        node-version: '24' # Menggunakan versi Node terbaru untuk menghilangkan Warning
+        node-version: '24'
 
-    - name: Install dependencies (Tanpa Lock File)
-      # Menggunakan npm install konvensional, bukan npm ci, agar aman dari error lock file
-      run: npm install 
+    - name: Install dependencies
+      run: npm install
 
     - name: Run Build Kompilasi
       run: npm run build
