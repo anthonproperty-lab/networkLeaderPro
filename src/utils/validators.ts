@@ -17,16 +17,18 @@ export const schemaLupaPassword = z.object({
 
 export const schemaContact = z.object({
   nama_depan: z.string().min(2, { message: 'Nama depan minimal 2 karakter' }),
-  nama_belakang: z.string().optional().nullable(),
+  nama_belakang: z.string().optional().nullable().or(z.literal('')),
   nomor_whatsapp: z.string().min(10, { message: 'Nomor WhatsApp minimal 10 digit angka' }).regex(/^[0-9]+$/, { message: 'Hanya diperbolehkan karakter angka' }),
-  catatan: z.string().optional().nullable(),
+  // AMAN & SINKRON: Menambahkan validasi status sesuai dropdown pada formulir kontak Anda
+  status: z.string().default('Baru'), 
+  catatan: z.string().optional().nullable().or(z.literal('')),
   tag_id: z.string().optional().nullable().or(z.literal('')), 
 });
 
 export const schemaFollowUp = z.object({
   contact_id: z.string().uuid({ message: 'Wajib memilih kontak prospek' }),
   judul: z.string().min(3, { message: 'Judul aktivitas minimal 3 karakter' }),
-  catatan: z.string().optional().nullable(),
+  catatan: z.string().optional().nullable().or(z.literal('')),
   tanggal_followup: z.string().min(1, { message: 'Tanggal dan waktu wajib ditentukan' }),
   status: z.enum(['Belum Selesai', 'Selesai', 'Batal']),
 });
@@ -41,5 +43,5 @@ export const schemaCampaign = z.object({
   judul: z.string().min(3, { message: 'Nama kampanye minimal 3 karakter' }),
   pesan: z.string().min(5, { message: 'Isi pesan penyiaran wajib diisi' }),
   status: z.enum(['Draft', 'Dijadwalkan', 'Berjalan', 'Selesai', 'Gagal']),
-  jadwal_kirim: z.string().optional().nullable(),
+  jadwal_kirim: z.string().optional().nullable().or(z.literal('')),
 });
