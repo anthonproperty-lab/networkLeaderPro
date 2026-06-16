@@ -2,7 +2,7 @@ name: Node.js CI Build
 
 on:
   push:
-    branches: [ main, master ] # Jalankan setiap ada push ke branch main atau master
+    branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
 
@@ -10,18 +10,22 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    # Mengaktifkan variabel lingkungan agar menggunakan Node 24 sesuai saran GitHub
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Setup Node.js
+    - name: Setup Node.js 24
       uses: actions/setup-node@v4
       with:
-        node-version: '20' # Sesuaikan dengan versi Node.js Anda
-        cache: 'npm'
+        node-version: '24' # Menggunakan versi Node terbaru untuk menghilangkan Warning
 
-    - name: Install dependencies
-      run: npm ci
+    - name: Install dependencies (Tanpa Lock File)
+      # Menggunakan npm install konvensional, bukan npm ci, agar aman dari error lock file
+      run: npm install 
 
-    - name: Run Build
+    - name: Run Build Kompilasi
       run: npm run build
