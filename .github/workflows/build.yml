@@ -1,0 +1,27 @@
+name: Node.js CI Build
+
+on:
+  push:
+    branches: [ main, master ] # Jalankan setiap ada push ke branch main atau master
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20' # Sesuaikan dengan versi Node.js Anda
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run Build
+      run: npm run build
