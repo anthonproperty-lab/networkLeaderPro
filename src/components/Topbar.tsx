@@ -19,7 +19,7 @@ export const Topbar: React.FC<TopbarProps> = ({ onSidebarToggle, toggleTheme, da
     <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1, background: darkMode ? '#181c23' : '#fff', color: darkMode ? '#fff' : '#000', boxShadow: 'none', borderBottom: darkMode ? '1px solid #1f252f' : '1px solid #e2e8f0' }}>
       <Toolbar>
         <IconButton edge="start" color="inherit" onClick={onSidebarToggle} sx={{ mr: 2, display: { md: 'none' } }}><MenuIcon /></IconButton>
-        <Typography variant="h6" noWrap sx={{ fontWeight: 'bold', letterSpacing: 0.5, color: '#0984e3' }}>NETWORK LEAD PRO</Typography>
+        <Typography variant="h6" noWrap sx={{ fontWeight: 'bold', letterSpacing: 0.5, color: '#0984e3' }}>NETWORK LEADER PRO</Typography>
         <Box sx={{ flexGrow: 1 }} />
         <IconButton color="inherit" onClick={toggleTheme} sx={{ mr: 1 }}>{darkMode ? <LightMode /> : <DarkMode />}</IconButton>
         <IconButton color="inherit" onClick={(e) => setAnchorEl(e.currentTarget)}><Avatar sx={{ width: 32, height: 32, bgcolor: '#0984e3' }} /></IconButton>
