@@ -122,7 +122,7 @@ export const KontakForm: React.FC<{ mode: 'create' | 'edit' }> = ({ mode }) => {
                   margin="normal"
                 >
                   <MenuItem value="">-- Tanpa Grup (Umum) --</MenuItem>
-                  {groups.map((g) => (
+                  {groups?.map((g) => (
                     <MenuItem key={g.id} value={g.id}>
                       {g.nama_grup}
                     </MenuItem>
