@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline, Box } from '@mui/material';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { TagsManagement } from './pages/TagsManagement';
 
 // State Store & Route Guard
 import { useAuthStore } from './stores/authStore';
@@ -105,7 +106,7 @@ export default function App() {
             <Route element={<DashboardLayout toggleTheme={() => setDarkMode(!darkMode)} darkMode={darkMode} />}>
               {/* Dasbor Ringkasan */}
               <Route path="/dashboard" element={<Dashboard />} />
-              
+              <Route path="/label" element={<TagsManagement />} />
               {/* Manajemen Kontak (CRUD) */}
               <Route path="/kontak" element={<KontakDirektori />} />
               <Route path="/kontak/tambah" element={<KontakForm mode="create" />} />
