@@ -20,7 +20,7 @@ export const schemaContact = z.object({
   nama_belakang: z.string().optional().nullable(),
   nomor_whatsapp: z.string().min(10, { message: 'Nomor WhatsApp minimal 10 digit angka' }).regex(/^[0-9]+$/, { message: 'Hanya diperbolehkan karakter angka' }),
   catatan: z.string().optional().nullable(),
-  group_id: z.string().optional().nullable().or(z.literal('')), 
+  tag_id: z.string().optional().nullable().or(z.literal('')), 
 });
 
 export const schemaFollowUp = z.object({
