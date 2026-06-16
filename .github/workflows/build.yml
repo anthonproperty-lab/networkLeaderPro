@@ -10,15 +10,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
     steps:
+    # Menggunakan rilis versi mutakhir yang fully-compatible dengan Node 24
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v4.2.2
 
     - name: Setup Node.js 24
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v4.2.0
       with:
         node-version: '24'
 
