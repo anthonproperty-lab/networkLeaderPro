@@ -4,7 +4,7 @@ import { Dashboard, People, Label, Schedule, Message, Campaign, AccountCircle } 
 import { useLocation, useNavigate } from 'react-router-dom';
 
 // 1. IMPORT LOGO ANDA DI SINI
-import LogoApp from 'assets/logo.png'; 
+import LogoApp from 'src/assets/logo.png'; 
 
 interface SidebarProps {
   mobileOpen: boolean;
