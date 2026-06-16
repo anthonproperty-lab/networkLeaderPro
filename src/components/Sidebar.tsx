@@ -3,8 +3,8 @@ import { Drawer, List, ListItemButton, ListItemIcon, ListItemText, Box, Typograp
 import { Dashboard, People, Label, Schedule, Message, Campaign, AccountCircle } from '@mui/icons-material';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-// PERBAIKAN UTAMA: Menggunakan Relative Path mundur yang valid bagi Vercel Compiler
-import LogoApp from '../assets/logo.png'; 
+// HAPUS ATAU KOMENTARI BARIS IMPORT GAMBAR YANG LAMA
+// import LogoApp from '../assets/logo.png'; 
 
 interface SidebarProps {
   mobileOpen: boolean;
@@ -39,9 +39,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, drawerWid
         }}
         onClick={() => navigate('/dashboard')}
       >
+        {/* PERBAIKAN: Langsung panggil nama file dari folder public dengan "/" */}
         <Box 
           component="img" 
-          src={LogoApp} 
+          src="/logo.png" 
           alt="Logo Aplikasi" 
           sx={{ height: 40, width: 'auto', objectFit: 'contain' }} 
         />
