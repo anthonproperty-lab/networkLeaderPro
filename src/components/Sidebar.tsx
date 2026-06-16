@@ -1,8 +1,10 @@
 import React from 'react';
-import { Drawer, List, ListItemButton, ListItemIcon, ListItemText, Toolbar, Box } from '@mui/material';
-// TAMBAHKAN 'Label' ke dalam daftar import ikon MUI
+import { Drawer, List, ListItemButton, ListItemIcon, ListItemText, Toolbar, Box, Typography } from '@mui/material';
 import { Dashboard, People, Label, Schedule, Message, Campaign, AccountCircle } from '@mui/icons-material';
 import { useLocation, useNavigate } from 'react-router-dom';
+
+// 1. IMPORT LOGO ANDA DI SINI
+import LogoApp from '../assets/logo.png'; 
 
 interface SidebarProps {
   mobileOpen: boolean;
@@ -17,9 +19,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, drawerWid
   const menuItems = [
     { text: 'Dasbor Analitik', icon: <Dashboard />, path: '/dashboard' },
     { text: 'Direktori Kontak', icon: <People />, path: '/kontak' },
-    // ================= MENAMBAHKAN MENU KELOLA LABEL =================
     { text: 'Kelola Label / Tag', icon: <Label />, path: '/label' },
-    // =================================================================
     { text: 'Jadwal Follow Up', icon: <Schedule />, path: '/follow-up' },
     { text: 'Template Pesan', icon: <Message />, path: '/template-pesan' },
     { text: 'Kampanye Broadcast', icon: <Campaign />, path: '/kampanye-broadcast' },
@@ -27,10 +27,34 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, drawerWid
   ];
 
   const drawerContent = (
-    <Box sx={{ overflow: 'auto', mt: 2 }}>
+    <Box sx={{ overflow: 'auto' }}>
+      {/* 2. TEMPATKAN LOGO DI SINI (DI ATAS LIST MENU) */}
+      <Box 
+        sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 1.5, 
+          px: 3, 
+          py: 2.5, 
+          cursor: 'pointer' 
+        }}
+        onClick={() => navigate('/dashboard')}
+      >
+        {/* Komponen Gambar Logo */}
+        <Box 
+          component="img" 
+          src={LogoApp} 
+          alt="Logo Aplikasi" 
+          sx={{ height: 40, width: 'auto', objectFit: 'contain' }} 
+        />
+        {/* Nama Aplikasi di Samping Logo */}
+        <Typography variant="h6" sx={{ fontWeight: 'bold', fontSize: '1.1rem', color: '#0984e3' }}>
+          SaaS Keren
+        </Typography>
+      </Box>
+
       <List>
         {menuItems.map((item) => {
-          // Menggunakan logika pencocokan rute yang presisi
           const active = location.pathname.startsWith(item.path);
           return (
             <ListItemButton 
@@ -61,7 +85,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, drawerWid
 
   return (
     <Box component="nav" sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}>
-      {/* Drawer untuk Tampilan Mobile */}
+      {/* Drawer Mobile */}
       <Drawer 
         variant="temporary" 
         open={mobileOpen} 
@@ -72,10 +96,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, drawerWid
           '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth, backgroundImage: 'none' } 
         }}
       >
-        <Toolbar />
+        {/* Pada mobile, kita sembunyikan Toolbar kosongnya agar logo mepet ke atas */}
         {drawerContent}
       </Drawer>
-      {/* Drawer untuk Tampilan Desktop */}
+      
+      {/* Drawer Desktop */}
       <Drawer 
         variant="permanent" 
         sx={{ 
@@ -84,7 +109,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, drawerWid
         }} 
         open
       >
-        <Toolbar />
+        {/* Di desktop, Toolbar dikosongkan/dihapus agar logo menggantikan area putih di paling atas */}
         {drawerContent}
       </Drawer>
     </Box>
