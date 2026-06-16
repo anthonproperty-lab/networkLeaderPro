@@ -1,10 +1,10 @@
 import React from 'react';
-import { Drawer, List, ListItemButton, ListItemIcon, ListItemText, Toolbar, Box, Typography } from '@mui/material';
+import { Drawer, List, ListItemButton, ListItemIcon, ListItemText, Box, Typography } from '@mui/material';
 import { Dashboard, People, Label, Schedule, Message, Campaign, AccountCircle } from '@mui/icons-material';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-// 1. IMPORT LOGO ANDA DI SINI
-import LogoApp from 'src/assets/logo.png'; 
+// PERBAIKAN UTAMA: Menggunakan Relative Path mundur yang valid bagi Vercel Compiler
+import LogoApp from '../assets/logo.png'; 
 
 interface SidebarProps {
   mobileOpen: boolean;
@@ -28,7 +28,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, drawerWid
 
   const drawerContent = (
     <Box sx={{ overflow: 'auto' }}>
-      {/* 2. TEMPATKAN LOGO DI SINI (DI ATAS LIST MENU) */}
       <Box 
         sx={{ 
           display: 'flex', 
@@ -40,16 +39,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, drawerWid
         }}
         onClick={() => navigate('/dashboard')}
       >
-        {/* Komponen Gambar Logo */}
         <Box 
           component="img" 
           src={LogoApp} 
           alt="Logo Aplikasi" 
           sx={{ height: 40, width: 'auto', objectFit: 'contain' }} 
         />
-        {/* Nama Aplikasi di Samping Logo */}
         <Typography variant="h6" sx={{ fontWeight: 'bold', fontSize: '1.1rem', color: '#0984e3' }}>
-          SaaS Keren
+          FORWARD CRM
         </Typography>
       </Box>
 
@@ -85,7 +82,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, drawerWid
 
   return (
     <Box component="nav" sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}>
-      {/* Drawer Mobile */}
       <Drawer 
         variant="temporary" 
         open={mobileOpen} 
@@ -96,11 +92,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, drawerWid
           '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth, backgroundImage: 'none' } 
         }}
       >
-        {/* Pada mobile, kita sembunyikan Toolbar kosongnya agar logo mepet ke atas */}
         {drawerContent}
       </Drawer>
       
-      {/* Drawer Desktop */}
       <Drawer 
         variant="permanent" 
         sx={{ 
@@ -109,7 +103,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, drawerWid
         }} 
         open
       >
-        {/* Di desktop, Toolbar dikosongkan/dihapus agar logo menggantikan area putih di paling atas */}
         {drawerContent}
       </Drawer>
     </Box>
