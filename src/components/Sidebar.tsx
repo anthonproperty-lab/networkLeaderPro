@@ -42,7 +42,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, drawerWid
         {/* PERBAIKAN: Langsung panggil nama file dari folder public dengan "/" */}
         <Box 
           component="img" 
-          src="/logo.png" 
+          src={`${import.meta.env.BASE_URL}logo.png`}
           alt="Logo Aplikasi" 
           sx={{ height: 40, width: 'auto', objectFit: 'contain' }} 
         />
