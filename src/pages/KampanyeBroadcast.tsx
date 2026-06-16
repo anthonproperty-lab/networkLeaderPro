@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { 
   Box, Typography, Button, Card, CardContent, Grid, Dialog, 
   DialogTitle, DialogContent, DialogActions, TextField, MenuItem, 
@@ -13,7 +13,7 @@ import { toast } from 'react-toastify';
 interface BroadcastFormInput {
   nama_kampanye: string;
   target_tipe: 'semua' | 'grup';
-  group_id?: string;
+  group_id: string;
   pesan: string;
 }
 
@@ -24,8 +24,13 @@ export const Broadcasts: React.FC = () => {
   const [openModal, setOpenModal] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
 
-  const { register, handleSubmit, watch, reset, formState: { errors } } = useForm<BroadcastFormInput>({
-    defaultValues: { target_tipe: 'semua' }
+  const { register, handleSubmit, watch, reset, control, formState: { errors } } = useForm<BroadcastFormInput>({
+    defaultValues: { 
+      nama_kampanye: '',
+      target_tipe: 'semua',
+      group_id: '',
+      pesan: ''
+    }
   });
 
   const watchTargetTipe = watch('target_tipe');
@@ -46,7 +51,8 @@ export const Broadcasts: React.FC = () => {
       // Ambil data grup untuk opsi target broadcast
       const { data: dataGrup, error: errGrup } = await supabase
         .from('contact_groups')
-        .select('id, nama_grup');
+        .select('id, nama_grup')
+        .order('nama_grup', { ascending: true });
 
       if (errGrup) throw errGrup;
       setGroups(dataGrup || []);
@@ -61,7 +67,7 @@ export const Broadcasts: React.FC = () => {
 
   // 2. Buka Modal Pembuatan Kampanye
   const handleOpenModal = () => {
-    reset({ nama_kampanye: '', target_tipe: 'semua', pesan: '' });
+    reset({ nama_kampanye: '', target_tipe: 'semua', group_id: '', pesan: '' });
     setOpenModal(true);
   };
 
@@ -96,7 +102,7 @@ export const Broadcasts: React.FC = () => {
             total_target: totalTarget,
             terkirim: 0,
             gagal: 0,
-            status: 'Pending' // Sistem antrean/engine WA Gateway backend akan mengubah ini menjadi 'Berjalan' -> 'Selesai'
+            status: 'Pending'
           }
         ]);
 
@@ -218,40 +224,60 @@ export const Broadcasts: React.FC = () => {
                   fullWidth
                   label="Nama Kampanye"
                   placeholder="Contoh: Promo Gila Idul Fitri / Followup Prospek Baru"
-                  {...register('nama_kampanye', { required: 'Nama kampanye wajib diisi' })}
+                  {register('nama_kampanye', { required: 'Nama kampanye wajib diisi' })}
                   error={!!errors.nama_kampanye}
                   helperText={errors.nama_kampanye?.message}
                   margin="dense"
                 />
 
-                <TextField
-                  fullWidth
-                  select
-                  label="Target Penerima Pesan"
-                  {...register('target_tipe')}
-                  margin="dense"
-                  sx={{ mt: 2 }}
-                >
-                  <MenuItem value="semua">Kirim ke Semua Kontak Anda</MenuItem>
-                  <MenuItem value="grup">Kirim Spesifik Berdasarkan Grup</MenuItem>
-                </TextField>
+                {/* Menggunakan Controller untuk Dropdown Target Tipe */}
+                <Controller
+                  name="target_tipe"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      select
+                      label="Target Penerima Pesan"
+                      margin="dense"
+                      sx={{ mt: 2 }}
+                    >
+                      <MenuItem value="semua">Kirim ke Semua Kontak Anda</MenuItem>
+                      <MenuItem value="grup">Kirim Spesifik Berdasarkan Grup</MenuItem>
+                    </TextField>
+                  )}
+                />
 
+                {/* Menggunakan Controller untuk Dropdown Grup Kontak */}
                 {watchTargetTipe === 'grup' && (
-                  <TextField
-                    fullWidth
-                    select
-                    label="Pilih Grup Kontak"
-                    defaultValue=""
-                    {...register('group_id', { required: watchTargetTipe === 'grup' ? 'Pilih grup wajib diisi' : false })}
-                    error={!!errors.group_id}
-                    helperText={errors.group_id?.message}
-                    margin="dense"
-                    sx={{ mt: 2 }}
-                  >
-                    {groups.map((g) => (
-                      <MenuItem key={g.id} value={g.id}>{g.nama_grup}</MenuItem>
-                    ))}
-                  </TextField>
+                  <Controller
+                    name="group_id"
+                    control={control}
+                    rules={{ required: 'Pilih grup wajib diisi' }}
+                    render={({ field, fieldState: { error } }) => (
+                      <TextField
+                        {...field}
+                        fullWidth
+                        select
+                        label="Pilih Grup Kontak"
+                        error={!!error}
+                        helperText={error?.message}
+                        margin="dense"
+                        sx={{ mt: 2 }}
+                      >
+                        {groups.length === 0 ? (
+                          <MenuItem value="" disabled>Tidak ada grup kontak ditemukan</MenuItem>
+                        ) : (
+                          groups.map((g) => (
+                            <MenuItem key={g.id} value={g.id}>
+                              {g.nama_grup}
+                            </MenuItem>
+                          ))
+                        )}
+                      </TextField>
+                    )}
+                  />
                 )}
               </Grid>
 
@@ -262,7 +288,7 @@ export const Broadcasts: React.FC = () => {
                   rows={7}
                   label="Isi Pesan WhatsApp"
                   placeholder="Tulis pesan Anda disini..."
-                  {...register('pesan', { required: 'Konten pesan tidak boleh kosong' })}
+                  {register('pesan', { required: 'Konten pesan tidak boleh kosong' })}
                   error={!!errors.pesan}
                   helperText={errors.pesan?.message}
                   margin="dense"
