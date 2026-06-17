@@ -1,45 +1,64 @@
 import React, { useEffect, useState } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { 
   Box, Typography, Button, Card, CardContent, Grid, Dialog, 
   DialogTitle, DialogContent, DialogActions, TextField, MenuItem, 
-  Table, TableHead, TableRow, TableCell, TableBody, Chip, LinearProgress, Alert
+  Table, TableHead, TableRow, TableCell, TableBody, Chip, LinearProgress, Alert, IconButton
 } from '@mui/material';
-import { Send, Add, Campaign, Groups, Person } from '@mui/icons-material';
+import { Send, Add, Groups, Person, Delete, AccessTime } from '@mui/icons-material';
 import { supabase } from '../services/supabaseClient';
 import { useAuthStore } from '../stores/authStore';
 import { toast } from 'react-toastify';
+import { useLocation, useNavigate } from 'react-router-dom';
 
-interface BroadcastFormInput {
+interface SingleBroadcastItem {
   nama_kampanye: string;
   target_tipe: 'semua' | 'grup';
   group_id: string;
   pesan: string;
+  scheduled_at: string; // ✅ Input format: YYYY-MM-DDTHH:mm
+}
+
+interface MultiBroadcastFormInput {
+  campaigns: SingleBroadcastItem[]; // ✅ Array untuk menampung beberapa draf sekaligus
 }
 
 export const Broadcasts: React.FC = () => {
   const user = useAuthStore((state) => state.user);
+  const location = useLocation();
+  const navigate = useNavigate();
   const [broadcasts, setBroadcasts] = useState<any[]>([]);
   const [groups, setGroups] = useState<any[]>([]);
   const [openModal, setOpenModal] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
 
-  const { handleSubmit, watch, reset, control, formState: { errors } } = useForm<BroadcastFormInput>({
-    defaultValues: { 
-      nama_kampanye: '',
-      target_tipe: 'semua',
-      group_id: '',
-      pesan: ''
+  // Ambil waktu lokal sekarang dalam format HTML5 datetime-local (YYYY-MM-DDTHH:mm)
+  const getLocalCurrentDateTime = () => {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    return now.toISOString().slice(0, 16);
+  };
+
+  const { handleSubmit, control, setValue, reset, watch } = useForm<MultiBroadcastFormInput>({
+    defaultValues: {
+      campaigns: [
+        { nama_kampanye: '', target_tipe: 'semua', group_id: '', pesan: '', scheduled_at: getLocalCurrentDateTime() }
+      ]
     }
   });
 
-  const watchTargetTipe = watch('target_tipe');
+  // ✅ Mengatur array form dinamis
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "campaigns"
+  });
 
-  // 1. Ambil data Riwayat Kampanye dan Daftar Label/Tag dari Supabase
+  const watchCampaigns = watch("campaigns");
+
+  // 1. Ambil data Riwayat dari Supabase
   const fetchData = async () => {
     if (!user) return;
     try {
-      // Ambil data kampanye broadcast
       const { data: dataBroadcast, error: errBroadcast } = await supabase
         .from('broadcasts')
         .select('*')
@@ -48,17 +67,15 @@ export const Broadcasts: React.FC = () => {
       if (errBroadcast) throw errBroadcast;
       setBroadcasts(dataBroadcast || []);
 
-      // Ambil data dari tabel tags (sesuai struktur database asli Anda)
       const { data: dataGrup, error: errGrup } = await supabase
         .from('tags')
         .select('id, name')
         .order('name', { ascending: true });
 
       if (errGrup) {
-        // Fallback jika nama kolom di tabel tags Anda adalah 'nama_tag'
         const { data: dataAlt, error: errAlt } = await supabase
           .from('tags')
-          .select('id, nama_tag')
+          .select('id, nama_tag') 
           .order('nama_tag', { ascending: true });
         
         if (!errAlt) {
@@ -67,7 +84,6 @@ export const Broadcasts: React.FC = () => {
         }
         throw errGrup;
       }
-      
       setGroups(dataGrup?.map(t => ({ id: t.id, name: t.name })) || []);
     } catch (err: any) {
       toast.error(`Gagal memuat data: ${err.message}`);
@@ -78,54 +94,103 @@ export const Broadcasts: React.FC = () => {
     fetchData();
   }, [user]);
 
-  // 2. Buka Modal Pembuatan Kampanye
+  // ✨ DETEKSI DAN AUTO-FILL TEMPLATE DARI URL PARAMS
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const templateId = searchParams.get('use_template');
+
+    if (templateId && user) {
+      const loadSelectedTemplate = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('templates')
+            .select('*')
+            .eq('id', templateId)
+            .single();
+
+          if (error) throw error;
+
+          if (data) {
+            // Set ke baris pertama draf
+            reset({
+              campaigns: [
+                {
+                  nama_kampanye: `Kampanye - ${data.judul}`,
+                  pesan: data.isi_pesan,
+                  target_tipe: 'semua',
+                  group_id: '',
+                  scheduled_at: getLocalCurrentDateTime()
+                }
+              ]
+            });
+            
+            setOpenModal(true);
+            toast.info(`Menggunakan draf template: ${data.judul}`);
+            navigate('/kampanye-broadcast', { replace: true });
+          }
+        } catch (err: any) {
+          console.error('Gagal memuat template:', err.message);
+        }
+      };
+      loadSelectedTemplate();
+    }
+  }, [location.search, user, reset, navigate]);
+
   const handleOpenModal = () => {
-    reset({ nama_kampanye: '', target_tipe: 'semua', group_id: '', pesan: '' });
+    reset({
+      campaigns: [{ nama_kampanye: '', target_tipe: 'semua', group_id: '', pesan: '', scheduled_at: getLocalCurrentDateTime() }]
+    });
     setOpenModal(true);
   };
 
-  // 3. Proses Submit & Pemicu Pengiriman Broadcast Massal
-  const handleSimpanBroadcast = async (data: BroadcastFormInput) => {
+  // 3. Simpan Banyak Kampanye Sekaligus ke Supabase
+  const handleSimpanBanyakBroadcast = async (formData: MultiBroadcastFormInput) => {
     setLoading(true);
     try {
-      let totalTarget = 0;
-      
-      if (data.target_tipe === 'semua') {
-        const { count } = await supabase.from('contacts').select('*', { count: 'exact', head: true });
-        totalTarget = count || 0;
-      } else if (data.group_id) {
-        // Mencari kontak yang terhubung ke tag pilihan melalui tabel jembatan contact_tags
-        const { count, error: errCount } = await supabase
-          .from('contact_tags')
-          .select('*', { count: 'exact', head: true })
-          .eq('tag_id', data.group_id);
-          
-        if (errCount) throw errCount;
-        totalTarget = count || 0;
+      const payloadInsert = [];
+
+      for (const item of formData.campaigns) {
+        let totalTarget = 0;
+        
+        if (item.target_tipe === 'semua') {
+          const { count } = await supabase.from('contacts').select('*', { count: 'exact', head: true });
+          totalTarget = count || 0;
+        } else if (item.group_id) {
+          const { count, error: errCount } = await supabase
+            .from('contact_tags')
+            .select('*', { count: 'exact', head: true })
+            .eq('tag_id', item.group_id);
+            
+          if (errCount) throw errCount;
+          totalTarget = count || 0;
+        }
+
+        if (totalTarget === 0) {
+          throw new Error(`Target penerima kosong pada kampanye: "${item.nama_kampanye || 'Tanpa Nama'}". Periksa target Anda.`);
+        }
+
+        // Tentukan status berdasarkan waktu penayangan
+        const skrg = new Date();
+        const waktuKirim = new Date(item.scheduled_at);
+        const statusKampanye = waktuKirim > skrg ? 'Scheduled' : 'Pending';
+
+        payloadInsert.push({
+          user_id: user?.id,
+          nama_kampanye: item.nama_kampanye,
+          target_tipe: item.target_tipe,
+          group_id: item.target_tipe === 'grup' ? item.group_id : null,
+          pesan: item.pesan,
+          total_target: totalTarget,
+          terkirim: 0,
+          status: statusKampanye,
+          scheduled_at: waktuKirim.toISOString() // ✅ Simpan data timestamp dengan TZ aman
+        });
       }
 
-      if (totalTarget === 0) {
-        throw new Error('Target penerima kosong. Silakan periksa kembali daftar kontak pada kelompok ini.');
-      }
-
-      // PERBAIKAN: Menghapus properti 'gagal' dari payload karena kolom tidak ada di database
-      const { error } = await supabase
-        .from('broadcasts')
-        .insert([
-          {
-            user_id: user?.id,
-            nama_kampanye: data.nama_kampanye,
-            target_tipe: data.target_tipe,
-            group_id: data.target_tipe === 'grup' ? data.group_id : null,
-            pesan: data.pesan,
-            total_target: totalTarget,
-            terkirim: 0,
-            status: 'Pending' // Kolom status bertipe varchar menerima string 'Pending' dengan aman
-          }
-        ]);
-
+      const { error } = await supabase.from('broadcasts').insert(payloadInsert);
       if (error) throw error;
-      toast.success('Kampanye broadcast berhasil dibuat dan masuk antrean pengiriman!');
+
+      toast.success(`${payloadInsert.length} Kampanye broadcast berhasil dibuat / dijadwalkan!`);
       setOpenModal(false);
       fetchData();
     } catch (err: any) {
@@ -136,43 +201,44 @@ export const Broadcasts: React.FC = () => {
   };
   
   return (
-    <Box>
+    <Box p={1}>
       {/* HEADER UTAMA */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 'bold' }}>Kampanye Broadcast Massal</Typography>
-          <Typography variant="body2" color="textSecondary">
-            Kirim pesan WhatsApp massal secara terjadwal atau instan ke ratusan kontak sekaligus.
+          <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'text.primary' }}>Kampanye Broadcast Massal</Typography>
+          <Typography variant="body2" color="text.secondary">
+            Manajemen dan jadwalkan pengiriman pesan teks massal ke pelanggan Anda.
           </Typography>
         </Box>
         <Button 
           variant="contained" 
           startIcon={<Add />} 
           onClick={handleOpenModal}
-          sx={{ bgcolor: '#20bf6b', '&:hover': { bgcolor: '#26de81' } }}
+          sx={{ bgcolor: '#20bf6b', '&:hover': { bgcolor: '#199d56' }, textTransform: 'none' }}
         >
-          Buat Kampanye Baru
+          Buat Kampanye Sekaligus
         </Button>
       </Box>
 
       {/* TABEL RIWAYAT */}
-      <Card sx={{ boxShadow: 2 }}>
+      <Card sx={{ backgroundColor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
         <CardContent sx={{ p: 0 }}>
           <Table>
             <TableHead sx={{ bgcolor: 'action.hover' }}>
               <TableRow>
-                <TableCell sx={{ fontWeight: 'bold' }}>Nama Kampanye / Tanggal</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Target Penerima</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', width: '30%' }}>Isi Pesan</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Statistik Kirim</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Status Pengiriman</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Nama Kampanye / Tanggal Pembuatan</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Target</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', width: '25%' }}>Isi Teks</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Waktu Peluncuran</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Statistik</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {broadcasts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} align="center" sx={{ py: 6, color: 'text.secondary' }}>
-                    Belum ada riwayat kampanye broadcast massal. Klik "Buat Kampanye Baru" untuk memulai.
+                  <TableCell colSpan={6} align="center" sx={{ py: 6, color: 'text.secondary' }}>
+                    Belum ada riwayat kampanye broadcast massal.
                   </TableCell>
                 </TableRow>
               ) : (
@@ -182,34 +248,37 @@ export const Broadcasts: React.FC = () => {
                     <TableRow key={item.id} hover>
                       <TableCell>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>{item.nama_kampanye}</Typography>
-                        <Typography variant="caption" color="textSecondary">
-                          {new Date(item.created_at).toLocaleString('id-ID')}
+                        <Typography variant="caption" color="text.secondary">
+                          Dibuat: {new Date(item.created_at).toLocaleString('id-ID')}
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <Box display="flex" alignItems="center" gap={1}>
+                        <Box display="flex" alignItems="center" gap={0.5}>
                           {item.target_tipe === 'semua' ? <Person fontSize="small" color="primary" /> : <Groups fontSize="small" color="secondary" />}
                           <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
-                            {item.target_tipe === 'semua' ? 'Semua Kontak' : 'Kelompok Tag'}
+                            {item.target_tipe === 'semua' ? 'Semua' : 'Tag'}
                           </Typography>
                         </Box>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', maxLines: 2, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap', maxLines: 2, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                           {item.pesan}
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <Box sx={{ width: '100%', mr: 1 }}>
-                          <Typography variant="caption" color="textSecondary">
-                            {`${item.terkirim} / ${item.total_target} Terkirim (${persentase}%)`}
+                        <Box display="flex" alignItems="center" gap={0.5} color="text.secondary">
+                          <AccessTime fontSize="xs" />
+                          <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                            {item.scheduled_at ? new Date(item.scheduled_at).toLocaleString('id-ID') : 'Instan'}
                           </Typography>
-                          <LinearProgress 
-                            variant="determinate" 
-                            value={persentase} 
-                            color={item.status === 'Selesai' ? 'success' : 'primary'} 
-                            sx={{ height: 6, borderRadius: 3, mt: 0.5 }}
-                          />
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ width: '100%' }}>
+                          <Typography variant="caption" color="text.secondary">
+                            {`${item.terkirim}/${item.total_target} (${persentase}%)`}
+                          </Typography>
+                          <LinearProgress variant="determinate" value={persentase} sx={{ height: 4, borderRadius: 2 }} />
                         </Box>
                       </TableCell>
                       <TableCell>
@@ -218,7 +287,8 @@ export const Broadcasts: React.FC = () => {
                           size="small" 
                           color={
                             item.status === 'Selesai' ? 'success' : 
-                            item.status === 'Berjalan' ? 'primary' : 'warning'
+                            item.status === 'Berjalan' ? 'primary' : 
+                            item.status === 'Scheduled' ? 'secondary' : 'warning'
                           } 
                         />
                       </TableCell>
@@ -231,110 +301,158 @@ export const Broadcasts: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* MODAL FORMULIR KAMPANYE BARU */}
-      <Dialog open={openModal} onClose={() => setOpenModal(false)} fullWidth maxWidth="md">
-        <DialogTitle sx={{ fontWeight: 'bold' }}>Konfigurasi Masal Broadcast WhatsApp</DialogTitle>
-        <form onSubmit={handleSubmit(handleSimpanBroadcast)}>
-          <DialogContent dividers>
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
-                
-                {/* 1. INPUT NAMA KAMPANYE MENGGUNAKAN CONTROLLER (MEMPERBAIKI ERROR BUILD VERCEL) */}
-                <Controller
-                  name="nama_kampanye"
-                  control={control}
-                  rules={{ required: 'Nama kampanye wajib diisi' }}
-                  render={({ field, fieldState: { error } }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label="Nama Kampanye"
-                      placeholder="Contoh: Promo Idul Fitri / Followup Prospek"
-                      error={!!error}
-                      helperText={error?.message}
-                      margin="dense"
-                    />
-                  )}
-                />
+      {/* MODAL MULTIPLE CAMPAIGN BATCH SCHEDULER */}
+      <Dialog open={openModal} onClose={() => setOpenModal(false)} fullWidth maxWidth="lg">
+        <DialogTitle sx={{ fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>Konfigurasi Pengiriman Massal (Multi-Batch)</span>
+          <Button 
+            variant="outlined" 
+            size="small" 
+            startIcon={<Add />}
+            onClick={() => append({ nama_kampanye: '', target_tipe: 'semua', group_id: '', pesan: '', scheduled_at: getLocalCurrentDateTime() })}
+          >
+            Tambah Variasi Kampanye
+          </Button>
+        </DialogTitle>
+        <form onSubmit={handleSubmit(handleSimpanBanyakBroadcast)}>
+          <DialogContent dividers sx={{ bgcolor: 'action.hover', maxHeight: '70vh' }}>
+            
+            {fields.map((field, index) => {
+              const currentTargetTipe = watchCampaigns?.[index]?.target_tipe;
 
-                {/* 2. DROPDOWN TARGET TIPE */}
-                <Controller
-                  name="target_tipe"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      select
-                      label="Target Penerima Pesan"
-                      margin="dense"
-                      sx={{ mt: 2 }}
+              return (
+                <Card key={field.id} sx={{ mb: 3, p: 2, position: 'relative', border: '1px solid', borderColor: 'divider', boxShadow: 1 }}>
+                  {fields.length > 1 && (
+                    <IconButton 
+                      color="error" 
+                      onClick={() => remove(index)} 
+                      sx={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}
+                      title="Hapus Variasi Ini"
                     >
-                      <MenuItem value="semua">Kirim ke Semua Kontak Anda</MenuItem>
-                      <MenuItem value="grup">Kirim Spesifik Berdasarkan Label/Tag</MenuItem>
-                    </TextField>
+                      <Delete />
+                    </IconButton>
                   )}
-                />
+                  
+                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#0984e3', mb: 2 }}>
+                    📋 Variasi Kampanye #{index + 1}
+                  </Typography>
 
-                {/* 3. DROPDOWN GRUP KONTAK / TAG */}
-                {watchTargetTipe === 'grup' && (
-                  <Controller
-                    name="group_id"
-                    control={control}
-                    rules={{ required: 'Pilih Label/Tag wajib diisi' }}
-                    render={({ field, fieldState: { error } }) => (
-                      <TextField
-                        {...field}
-                        fullWidth
-                        select
-                        label="Pilih Label / Tag Kontak"
-                        error={!!error}
-                        helperText={error?.message}
-                        margin="dense"
-                        sx={{ mt: 2 }}
-                      >
-                        {groups.length === 0 ? (
-                          <MenuItem value="" disabled>Tidak ada label kontak ditemukan</MenuItem>
-                        ) : (
-                          groups.map((g) => (
-                            <MenuItem key={g.id} value={g.id}>
-                              {g.name}
-                            </MenuItem>
-                          ))
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={4}>
+                      {/* Nama Kampanye */}
+                      <Controller
+                        name={`campaigns.${index}.nama_kampanye`}
+                        control={control}
+                        rules={{ required: 'Nama kampanye wajib diisi' }}
+                        render={({ field, fieldState: { error } }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            size="small"
+                            label="Nama Kampanye"
+                            placeholder="Contoh: Diskon Model A"
+                            error={!!error}
+                            helperText={error?.message}
+                            InputLabelProps={{ shrink: true }}
+                          />
                         )}
-                      </TextField>
-                    )}
-                  />
-                )}
-              </Grid>
+                      />
 
-              <Grid item xs={12} md={6}>
-                {/* 4. INPUT ISI PESAN MENGGUNAKAN CONTROLLER (MEMPERBAIKI ERROR BUILD VERCEL) */}
-                <Controller
-                  name="pesan"
-                  control={control}
-                  rules={{ required: 'Konten pesan tidak boleh kosong' }}
-                  render={({ field, fieldState: { error } }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      multiline
-                      rows={7}
-                      label="Isi Pesan WhatsApp"
-                      placeholder="Tulis pesan Anda disini..."
-                      error={!!error}
-                      helperText={error?.message}
-                      margin="dense"
-                    />
-                  )}
-                />
-                
-                <Alert severity="info" sx={{ mt: 1, fontSize: '0.8rem' }}>
-                  Gunakan tag <strong>{`{name}`}</strong> untuk memanggil nama kontak secara otomatis.<br/>
-                  Contoh: <em>Halo {`{name}`}, ada penawaran khusus hari ini!</em>
-                </Alert>
-              </Grid>
-            </Grid>
+                      {/* Tipe Target */}
+                      <Controller
+                        name={`campaigns.${index}.target_tipe`}
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            select
+                            size="small"
+                            label="Target Penerima"
+                            sx={{ mt: 2 }}
+                            InputLabelProps={{ shrink: true }}
+                          >
+                            <MenuItem value="semua">Semua Kontak</MenuItem>
+                            <MenuItem value="grup">Spesifik Label/Tag</MenuItem>
+                          </TextField>
+                        )}
+                      />
+
+                      {/* Group/Tag ID */}
+                      {currentTargetTipe === 'grup' && (
+                        <Controller
+                          name={`campaigns.${index}.group_id`}
+                          control={control}
+                          rules={{ required: 'Pilih Label/Tag wajib diisi' }}
+                          render={({ field, fieldState: { error } }) => (
+                            <TextField
+                              {...field}
+                              fullWidth
+                              select
+                              size="small"
+                              label="Pilih Label / Tag"
+                              error={!!error}
+                              helperText={error?.message}
+                              sx={{ mt: 2 }}
+                              InputLabelProps={{ shrink: true }}
+                            >
+                              {groups.length === 0 ? (
+                                <MenuItem value="" disabled>Tidak ada label</MenuItem>
+                              ) : (
+                                groups.map((g) => <MenuItem key={g.id} value={g.id}>{g.name}</MenuItem>)
+                              )}
+                            </TextField>
+                          )}
+                        />
+                      )}
+
+                      {/* ✅ WAKTU PELUNCURAN (TIMER JADWAL) */}
+                      <Controller
+                        name={`campaigns.${index}.scheduled_at`}
+                        control={control}
+                        rules={{ required: 'Tentukan waktu pengiriman' }}
+                        render={({ field, fieldState: { error } }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            type="datetime-local"
+                            size="small"
+                            label="Jadwal Waktu Peluncuran"
+                            error={!!error}
+                            helperText={error ? error.message : 'Pesan otomatis terkirim pada jam ini.'}
+                            sx={{ mt: 2 }}
+                            InputLabelProps={{ shrink: true }}
+                          />
+                        )}
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} md={8}>
+                      {/* Isi Pesan Konten */}
+                      <Controller
+                        name={`campaigns.${index}.pesan`}
+                        control={control}
+                        rules={{ required: 'Konten pesan tidak boleh kosong' }}
+                        render={({ field, fieldState: { error } }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            multiline
+                            rows={6}
+                            label="Isi Pesan WhatsApp (Model Tampilan)"
+                            placeholder="Tulis format teks promosi/edukasi model ini disini..."
+                            error={!!error}
+                            helperText={error?.message || 'Gunakan {name} untuk personalisasi nama pelanggan.'}
+                            InputLabelProps={{ shrink: true }}
+                          />
+                        )}
+                      />
+                    </Grid>
+                  </Grid>
+                </Card>
+              );
+            })}
+
           </DialogContent>
           <DialogActions sx={{ p: 2 }}>
             <Button onClick={() => setOpenModal(false)} color="inherit">Batal</Button>
@@ -343,9 +461,9 @@ export const Broadcasts: React.FC = () => {
               variant="contained" 
               startIcon={<Send />} 
               disabled={loading} 
-              sx={{ bgcolor: '#20bf6b', '&:hover': { bgcolor: '#199d56' } }}
+              sx={{ bgcolor: '#20bf6b', '&:hover': { bgcolor: '#199d56' }, textTransform: 'none' }}
             >
-              {loading ? 'Memproses Antrean...' : 'Mulai Jalankan Kampanye'}
+              {loading ? 'Menyimpan Semua...' : `Proses ${fields.length} Kampanye`}
             </Button>
           </DialogActions>
         </form>
