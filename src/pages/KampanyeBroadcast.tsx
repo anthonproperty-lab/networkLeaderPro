@@ -116,7 +116,7 @@ useEffect(() => {
             campaigns: [
               {
                 nama_kampanye: `Kampanye - ${data.judul || data.name || 'Template'}`,
-                pesan: data.isi_pesan || data.content || '',
+                pesan: data.pesan || data.content || '',
                 target_tipe: 'semua',
                 group_id: '',
                 scheduled_at: getLocalCurrentDateTime()
