@@ -2,32 +2,47 @@ import React, { useEffect, useState } from 'react';
 import { Grid, Card, CardContent, Typography, Box, CircularProgress } from '@mui/material';
 import { People, NotificationImportant, Campaign, Schedule } from '@mui/icons-material';
 import { supabase } from '../services/supabaseClient';
+import { useAuthStore } from '../stores/authStore'; // 💡 TAMBAHAN: Import auth store
 
 export const Dashboard: React.FC = () => {
+  const user = useAuthStore((state) => state.user); // 💡 TAMBAHAN: Ambil data user yang sedang login
   const [stats, setStats] = useState({ kontak: 0, followup: 0, kampanye: 0, notif: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
-      setLoading(true);
-      const [kontakCount, followupCount, kampanyeCount, notifCount] = await Promise.all([
-        supabase.from('contacts').select('*', { count: 'exact', head: true }),
-        supabase.from('followups').select('*', { count: 'exact', head: true }).eq('status', 'Belum Selesai'),
-        supabase.from('campaigns').select('*', { count: 'exact', head: true }),
-        supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('is_read', false)
-      ]);
+      // 🔒 PENAHAN: Jika session auth user belum siap/load, tunggu dulu dan jangan jalankan query
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
-      setStats({
-        kontak: kontakCount.count || 0,
-        followup: followupCount.count || 0,
-        kampanye: kampanyeCount.count || 0,
-        notif: notifCount.count || 0,
-      });
-      setLoading(false);
+      try {
+        setLoading(true);
+
+        // 💡 PERBAIKAN UTAMA: Arahkan nama tabel ke 'broadcasts' dan saring semuanya menggunakan .eq('user_id', user.id)
+        const [kontakCount, followupCount, kampanyeCount, notifCount] = await Promise.all([
+          supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
+          supabase.from('followups').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('status', 'Belum Selesai'),
+          supabase.from('broadcasts').select('*', { count: 'exact', head: true }).eq('user_id', user.id), // 🔥 DIUBAH ke 'broadcasts' & disaring user_id
+          supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_read', false)
+        ]);
+
+        setStats({
+          kontak: kontakCount.count || 0,
+          followup: followupCount.count || 0,
+          kampanye: kampanyeCount.count || 0, // Nilai ini sekarang otomatis sinkron dengan riwayat broadcast
+          notif: notifCount.count || 0,
+        });
+      } catch (error: any) {
+        console.error('Gagal mengambil data dashboard:', error.message);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchDashboardData();
-  }, []);
+  }, [user]); // 🔄 Pemicu: Jalankan ulang fungsi jika state user berhasil dimuat dari local storage
 
   if (loading) {
     return (
@@ -46,7 +61,6 @@ export const Dashboard: React.FC = () => {
 
   return (
     <Box p={3}>
-      {/* ✅ PERBAIKAN 1: Menggunakan 'text.primary' agar otomatis hitam di mode terang, putih di mode gelap */}
       <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', color: 'text.primary' }}>
         Dasbor Ringkasan Analitik
       </Typography>
@@ -54,22 +68,19 @@ export const Dashboard: React.FC = () => {
       <Grid container spacing={3} mt={1}>
         {cards.map((card, idx) => (
           <Grid item xs={12} sm={6} md={3} key={idx}>
-            {/* ✅ PERBAIKAN 2: Menggunakan background 'background.paper' agar warna box ikut berubah sesuai tema */}
             <Card sx={{ 
               backgroundColor: 'background.paper', 
-              backgroundImage: 'none', // Menghilangkan overlay default MUI pada dark mode
+              backgroundImage: 'none', 
               border: '1px solid',
-              borderColor: 'divider', // Border adaptif mengikuti tema
+              borderColor: 'divider', 
               borderRadius: '12px' 
             }}>
               <CardContent>
                 <Box display="flex" justifyContent="space-between" alignItems="center">
                   <Box>
-                    {/* ✅ PERBAIKAN 3: Menggunakan 'text.secondary' agar warna label lebih soft secara dinamis */}
                     <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 500 }}>
                       {card.title}
                     </Typography>
-                    {/* ✅ PERBAIKAN 4: Mengubah warna angka menjadi 'text.primary' (bukan #fff statis) */}
                     <Typography variant="h3" sx={{ fontWeight: 'bold', mt: 1, color: 'text.primary' }}>
                       {card.val}
                     </Typography>
