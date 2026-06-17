@@ -292,15 +292,16 @@ export const Templates: React.FC = () => {
 
               <Grid item xs={12}>
                 <TextField
-                  fullWidth
-                  label="Judul / Nama Template"
-                  placeholder="Contoh: Sapaan Pelanggan Baru"
-                  {register('judul', { required: 'Judul wajib diisi' })}
-                  error={!!errors.judul}
-                  helperText={errors.judul?.message}
-                  margin="dense"
-                  InputLabelProps={{ shrink: true }}
-                />
+  fullWidth
+  label="Judul Template"
+  placeholder="Contoh: Promo Weekend"
+  error={!!errors.judul}
+  helperText={errors.judul?.message}
+  margin="dense"
+  InputLabelProps={{ shrink: true }}
+  // ✅ Pendaftaran React Hook Form yang benar untuk Material-UI:
+  {...register('judul', { required: 'Judul wajib diisi' })} 
+/>
               </Grid>
               <Grid item xs={12}>
                 <TextField
