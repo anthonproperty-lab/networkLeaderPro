@@ -8,7 +8,6 @@ import { toast } from 'react-toastify';
 import { useNavigate, useParams } from 'react-router-dom';
 import { z } from 'zod';
 
-// Mendapatkan inferensi tipe data langsung dari schema Zod agar TypeScript sinkron 100%
 type ContactFormValues = z.infer<typeof schemaContact>;
 
 export const KontakForm: React.FC<{ mode: 'create' | 'edit' }> = ({ mode }) => {
@@ -16,7 +15,6 @@ export const KontakForm: React.FC<{ mode: 'create' | 'edit' }> = ({ mode }) => {
   const { id } = useParams();
   const [tags, setTags] = useState<any[]>([]);
 
-  // Memberikan tipe generic <ContactFormValues> pada useForm
   const { register, handleSubmit, setValue, control, formState: { errors, isSubmitting } } = useForm<ContactFormValues>({ 
     resolver: zodResolver(schemaContact),
     defaultValues: {
@@ -29,7 +27,7 @@ export const KontakForm: React.FC<{ mode: 'create' | 'edit' }> = ({ mode }) => {
     }
   });
 
-  // 1. AMBIL DAFTAR DARI TABEL 'tags' ASLI SUPABASE
+  // 1. Ambil daftar dari tabel 'tags' asli Supabase
   useEffect(() => {
     const fetchTags = async () => {
       try {
@@ -117,10 +115,8 @@ export const KontakForm: React.FC<{ mode: 'create' | 'edit' }> = ({ mode }) => {
         if (errUpdate) throw errUpdate;
       }
 
-      // Hapus relasi tag lama terlebih dahulu
       await supabase.from('contact_tags').delete().eq('contact_id', contactId);
 
-      // Jika user memilih sebuah label/tag, masukkan baris baru ke tabel contact_tags
       if (formData.tag_id && formData.tag_id !== '') {
         const { error: errLink } = await supabase
           .from('contact_tags')
@@ -138,13 +134,16 @@ export const KontakForm: React.FC<{ mode: 'create' | 'edit' }> = ({ mode }) => {
 
   return (
     <Box p={1}>
-      <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 3 }}>
+      {/* ✅ PERBAIKAN 1: Menggunakan 'text.primary' agar judul otomatis hitam di light mode dan putih di dark mode */}
+      <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 3, color: 'text.primary' }}>
         {mode === 'create' ? 'Tambah Kontak Baru' : 'Perbarui Data Kontak'}
       </Typography>
+      
       <Card>
         <CardContent sx={{ p: 4 }}>
           <form onSubmit={handleSubmit(onSubmit)}>
             
+            {/* ✅ PERBAIKAN 2: Menambahkan InputLabelProps={{ shrink: true }} agar label tidak menabrak teks */}
             <TextField 
               fullWidth 
               label="Nama Depan" 
@@ -152,9 +151,16 @@ export const KontakForm: React.FC<{ mode: 'create' | 'edit' }> = ({ mode }) => {
               {...register('nama_depan')} 
               error={!!errors.nama_depan} 
               helperText={errors.nama_depan?.message || ''} 
+              InputLabelProps={{ shrink: true }}
             />
             
-            <TextField fullWidth label="Nama Belakang" margin="normal" {...register('nama_belakang')} />
+            <TextField 
+              fullWidth 
+              label="Nama Belakang" 
+              margin="normal" 
+              {...register('nama_belakang')} 
+              InputLabelProps={{ shrink: true }}
+            />
             
             <TextField 
               fullWidth 
@@ -163,6 +169,7 @@ export const KontakForm: React.FC<{ mode: 'create' | 'edit' }> = ({ mode }) => {
               {...register('nomor_whatsapp')} 
               error={!!errors.nomor_whatsapp} 
               helperText={errors.nomor_whatsapp?.message || ''} 
+              InputLabelProps={{ shrink: true }}
             />
             
             <TextField 
@@ -173,6 +180,7 @@ export const KontakForm: React.FC<{ mode: 'create' | 'edit' }> = ({ mode }) => {
               {...register('status')} 
               error={!!errors.status}
               defaultValue="Baru"
+              InputLabelProps={{ shrink: true }}
             >
               {['Baru', 'Dihubungi', 'Prospek', 'Pelanggan', 'Tidak Tertarik'].map((s) => (
                 <MenuItem key={s} value={s}>{s}</MenuItem>
@@ -189,6 +197,7 @@ export const KontakForm: React.FC<{ mode: 'create' | 'edit' }> = ({ mode }) => {
                   select
                   label="Pilih Label / Kelompok Kontak"
                   margin="normal"
+                  InputLabelProps={{ shrink: true }}
                 >
                   <MenuItem value="">-- Tanpa Label (Umum) --</MenuItem>
                   {tags?.map((t) => (
@@ -200,7 +209,15 @@ export const KontakForm: React.FC<{ mode: 'create' | 'edit' }> = ({ mode }) => {
               )}
             />
 
-            <TextField fullWidth multiline rows={3} label="Catatan Tambahan" margin="normal" {...register('catatan')} />
+            <TextField 
+              fullWidth 
+              multiline 
+              rows={3} 
+              label="Catatan Tambahan" 
+              margin="normal" 
+              {...register('catatan')} 
+              InputLabelProps={{ shrink: true }}
+            />
             
             <Box display="flex" gap={2} mt={3} justifyContent="flex-end">
               <Button variant="outlined" onClick={() => navigate('/kontak')}>Batal</Button>
