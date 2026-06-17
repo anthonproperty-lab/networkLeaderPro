@@ -233,7 +233,7 @@ export const Templates: React.FC = () => {
                       <IconButton 
                         color="success" 
                         title="Gunakan untuk Broadcast"
-                        onClick={() => navigate(`/kampanye-broadcast?use_template=${template.id}`)} 
+                        onClick={() => navigate(`/kampanyeBroadcast?use_template=${template.id}`)} 
                         size="small"
                       >
                         <Campaign fontSize="small" />
