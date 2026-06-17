@@ -3,7 +3,7 @@ import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { 
   Box, Typography, Button, Card, CardContent, Grid, Dialog, 
   DialogTitle, DialogContent, DialogActions, TextField, MenuItem, 
-  Table, TableHead, TableRow, TableCell, TableBody, Chip, LinearProgress, Alert, IconButton
+  Table, TableHead, TableRow, TableCell, TableBody, Chip, LinearProgress, IconButton
 } from '@mui/material';
 import { Send, Add, Groups, Person, Delete, AccessTime } from '@mui/icons-material';
 import { supabase } from '../services/supabaseClient';
@@ -12,15 +12,15 @@ import { toast } from 'react-toastify';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 interface SingleBroadcastItem {
-  nama_kampanye: string;
-  target_tipe: 'semua' | 'grup';
-  group_id: string;
-  pesan: string;
-  scheduled_at: string; // ✅ Input format: YYYY-MM-DDTHH:mm
+  nama_kampanye: string; // 📋 Sesuai kolom database Anda
+  target_tipe: 'semua' | 'grup'; // 📋 Sesuai kolom database Anda
+  group_id: string; // 📋 Sesuai kolom database Anda
+  pesan: string; // 📋 Sesuai kolom database Anda
+  scheduled_at: string; // 📋 Sesuai kolom database Anda (Format HTML: YYYY-MM-DDTHH:mm)
 }
 
 interface MultiBroadcastFormInput {
-  campaigns: SingleBroadcastItem[]; // ✅ Array untuk menampung beberapa draf sekaligus
+  campaigns: SingleBroadcastItem[];
 }
 
 export const Broadcasts: React.FC = () => {
@@ -32,14 +32,14 @@ export const Broadcasts: React.FC = () => {
   const [openModal, setOpenModal] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
 
-  // Ambil waktu lokal sekarang dalam format HTML5 datetime-local (YYYY-MM-DDTHH:mm)
+  // Fungsi helper mendapatkan waktu lokal untuk default datetime picker
   const getLocalCurrentDateTime = () => {
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     return now.toISOString().slice(0, 16);
   };
 
-  const { handleSubmit, control, setValue, reset, watch } = useForm<MultiBroadcastFormInput>({
+  const { handleSubmit, control, reset, watch } = useForm<MultiBroadcastFormInput>({
     defaultValues: {
       campaigns: [
         { nama_kampanye: '', target_tipe: 'semua', group_id: '', pesan: '', scheduled_at: getLocalCurrentDateTime() }
@@ -47,7 +47,6 @@ export const Broadcasts: React.FC = () => {
     }
   });
 
-  // ✅ Mengatur array form dinamis
   const { fields, append, remove } = useFieldArray({
     control,
     name: "campaigns"
@@ -55,18 +54,19 @@ export const Broadcasts: React.FC = () => {
 
   const watchCampaigns = watch("campaigns");
 
-  // 1. Ambil data Riwayat dari Supabase
+  // 1. Ambil Riwayat Langsung dari Tabel 'broadcasts'
   const fetchData = async () => {
     if (!user) return;
     try {
-      const { data: dataBroadcast, error: errBroadcast } = await supabase
+      const { data, error } = await supabase
         .from('broadcasts')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (errBroadcast) throw errBroadcast;
-      setBroadcasts(dataBroadcast || []);
+      if (error) throw error;
+      setBroadcasts(data || []);
 
+      // Ambil data tags/label untuk opsi dropdown
       const { data: dataGrup, error: errGrup } = await supabase
         .from('tags')
         .select('id, name')
@@ -94,52 +94,45 @@ export const Broadcasts: React.FC = () => {
     fetchData();
   }, [user]);
 
- // ✨ DETEKSI DAN AUTO-FILL TEMPLATE DARI URL PARAMS (KONEKSI KE TEMPLATE PESAN)
-useEffect(() => {
-  const searchParams = new URLSearchParams(location.search);
-  const templateId = searchParams.get('use_template');
+  // 2. Tangkap Pelemparan Data dari Template Pesan
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const templateId = searchParams.get('use_template');
 
-  if (templateId && user) {
-    const loadSelectedTemplate = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('templates')
-          .select('*')
-          .eq('id', templateId)
-          .single();
+    if (templateId && user) {
+      const loadSelectedTemplate = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('templates')
+            .select('*')
+            .eq('id', templateId)
+            .single();
 
-        if (error) throw error;
+          if (error) throw error;
 
-        if (data) {
-          // ✅ HUBUNGKAN KE FORM MULTI-BATCH (Isi otomatis baris pertama)
-          reset({
-            campaigns: [
-              {
-                nama_kampanye: `Kampanye - ${data.judul || data.name || 'Template'}`,
-                pesan: data.pesan || data.content || '',
-                target_tipe: 'semua',
-                group_id: '',
-                scheduled_at: getLocalCurrentDateTime()
-              }
-            ]
-          });
-          
-          // Otomatis buka modal untuk pengguna
-          setOpenModal(true);
-          toast.info(`Menggunakan draf template: ${data.judul || data.name}`);
-          
-          // Bersihkan URL parameter agar saat di-refresh modal tidak terus terbuka
-          navigate('/kampanye-broadcast', { replace: true });
+          if (data) {
+            reset({
+              campaigns: [
+                {
+                  nama_kampanye: `Kampanye - ${data.judul || 'Template'}`,
+                  pesan: data.isi_pesan || '',
+                  target_tipe: 'semua',
+                  group_id: '',
+                  scheduled_at: getLocalCurrentDateTime()
+                }
+              ]
+            });
+            setOpenModal(true);
+            toast.info(`Menggunakan draf template: ${data.judul}`);
+            navigate('/kampanye-broadcast', { replace: true });
+          }
+        } catch (err: any) {
+          console.error('Gagal memuat template:', err.message);
         }
-      } catch (err: any) {
-        console.error('Gagal memuat template ke formulir:', err.message);
-        toast.error('Gagal memuat data template pesan.');
-      }
-    };
-
-    loadSelectedTemplate();
-  }
-}, [location.search, user, reset, navigate]);
+      };
+      loadSelectedTemplate();
+    }
+  }, [location.search, user, reset, navigate]);
 
   const handleOpenModal = () => {
     reset({
@@ -148,7 +141,7 @@ useEffect(() => {
     setOpenModal(true);
   };
 
-  // 3. Simpan Banyak Kampanye Sekaligus ke Supabase
+  // 3. Simpan Banyak Kampanye Sekaligus (Bulk Insert) ke Tabel 'broadcasts'
   const handleSimpanBanyakBroadcast = async (formData: MultiBroadcastFormInput) => {
     setLoading(true);
     try {
@@ -171,10 +164,9 @@ useEffect(() => {
         }
 
         if (totalTarget === 0) {
-          throw new Error(`Target penerima kosong pada kampanye: "${item.nama_kampanye || 'Tanpa Nama'}". Periksa target Anda.`);
+          throw new Error(`Target kontak kosong pada variasi: "${item.nama_kampanye || 'Tanpa Nama'}".`);
         }
 
-        // Tentukan status berdasarkan waktu penayangan
         const skrg = new Date();
         const waktuKirim = new Date(item.scheduled_at);
         const statusKampanye = waktuKirim > skrg ? 'Scheduled' : 'Pending';
@@ -188,18 +180,20 @@ useEffect(() => {
           total_target: totalTarget,
           terkirim: 0,
           status: statusKampanye,
-          scheduled_at: waktuKirim.toISOString() // ✅ Simpan data timestamp dengan TZ aman
+          scheduled_at: waktuKirim.toISOString(), // 📋 Masuk dengan format timestamptz aman
+          failed: 0
         });
       }
 
+      // Langsung push sekaligus dalam 1 request ke Supabase
       const { error } = await supabase.from('broadcasts').insert(payloadInsert);
       if (error) throw error;
 
-      toast.success(`${payloadInsert.length} Kampanye broadcast berhasil dibuat / dijadwalkan!`);
+      toast.success(`${payloadInsert.length} Kampanye terjadwal berhasil disimpan!`);
       setOpenModal(false);
       fetchData();
     } catch (err: any) {
-      toast.error(`Gagal membuat kampanye: ${err.message}`);
+      toast.error(`Gagal menyimpan: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -207,12 +201,12 @@ useEffect(() => {
   
   return (
     <Box p={1}>
-      {/* HEADER UTAMA */}
+      {/* HEADER */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'text.primary' }}>Kampanye Broadcast Massal</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 'bold' }}>Kampanye Broadcast Massal</Typography>
           <Typography variant="body2" color="text.secondary">
-            Manajemen dan jadwalkan pengiriman pesan teks massal ke pelanggan Anda.
+            Konfigurasi variasi isi tampilan pesan dan waktu peluncuran terjadwal.
           </Typography>
         </Box>
         <Button 
@@ -225,17 +219,17 @@ useEffect(() => {
         </Button>
       </Box>
 
-      {/* TABEL RIWAYAT */}
-      <Card sx={{ backgroundColor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
+      {/* TABEL DATA UTAMA */}
+      <Card>
         <CardContent sx={{ p: 0 }}>
           <Table>
             <TableHead sx={{ bgcolor: 'action.hover' }}>
               <TableRow>
-                <TableCell sx={{ fontWeight: 'bold' }}>Nama Kampanye / Tanggal Pembuatan</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Nama Kampanye / Tanggal</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Target</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', width: '25%' }}>Isi Teks</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', width: '30%' }}>Isi Teks</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Waktu Peluncuran</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Statistik</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Statistik (Kirim/Target)</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
               </TableRow>
             </TableHead>
@@ -266,13 +260,13 @@ useEffect(() => {
                         </Box>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap', maxLines: 2, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                           {item.pesan}
                         </Typography>
                       </TableCell>
                       <TableCell>
                         <Box display="flex" alignItems="center" gap={0.5} color="text.secondary">
-                          <AccessTime fontSize="xs" />
+                          <AccessTime fontSize="inherit" />
                           <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
                             {item.scheduled_at ? new Date(item.scheduled_at).toLocaleString('id-ID') : 'Instan'}
                           </Typography>
@@ -291,7 +285,7 @@ useEffect(() => {
                           label={item.status} 
                           size="small" 
                           color={
-                            item.status === 'Selesai' ? 'success' : 
+                            item.status === 'Completed' || item.status === 'Selesai' ? 'success' : 
                             item.status === 'Berjalan' ? 'primary' : 
                             item.status === 'Scheduled' ? 'secondary' : 'warning'
                           } 
@@ -306,10 +300,10 @@ useEffect(() => {
         </CardContent>
       </Card>
 
-      {/* MODAL MULTIPLE CAMPAIGN BATCH SCHEDULER */}
+      {/* MODAL BATCH FORM MULTIPLE CAMPAIGN */}
       <Dialog open={openModal} onClose={() => setOpenModal(false)} fullWidth maxWidth="lg">
         <DialogTitle sx={{ fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>Konfigurasi Pengiriman Massal (Multi-Batch)</span>
+          <span>Buat Beberapa Broadcast Terjadwal Sekaligus</span>
           <Button 
             variant="outlined" 
             size="small" 
@@ -332,36 +326,35 @@ useEffect(() => {
                       color="error" 
                       onClick={() => remove(index)} 
                       sx={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}
-                      title="Hapus Variasi Ini"
                     >
                       <Delete />
                     </IconButton>
                   )}
                   
                   <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#0984e3', mb: 2 }}>
-                    📋 Variasi Kampanye #{index + 1}
+                    🚀 Model Variasi Kampanye #{index + 1}
                   </Typography>
 
                   <Grid container spacing={2}>
                     <Grid item xs={12} md={4}>
                       {/* Nama Kampanye */}
                       <Controller
-  name={`campaigns.${index}.nama_kampanye`}
-  control={control}
-  rules={{ required: 'Nama kampanye wajib diisi' }}
-  render={({ field, fieldState: { error } }) => (
-    <TextField
-      {...field}
-      fullWidth
-      size="small"
-      label="Nama Kampanye"
-      placeholder="Contoh: Diskon Model A"
-      error={!!error}
-      helperText={error?.message}
-      InputLabelProps={{ shrink: true }}
-    />
-  )}
-/>
+                        name={`campaigns.${index}.nama_kampanye`}
+                        control={control}
+                        rules={{ required: 'Nama kampanye wajib diisi' }}
+                        render={({ field, fieldState: { error } }) => (
+                          <TextField
+                            {...field}
+                            fullWidth
+                            size="small"
+                            label="Nama Kampanye"
+                            placeholder="Contoh: Diskon Pelanggan Baru"
+                            error={!!error}
+                            helperText={error?.message}
+                            InputLabelProps={{ shrink: true }}
+                          />
+                        )}
+                      />
 
                       {/* Tipe Target */}
                       <Controller
@@ -383,7 +376,7 @@ useEffect(() => {
                         )}
                       />
 
-                      {/* Group/Tag ID */}
+                      {/* Group ID */}
                       {currentTargetTipe === 'grup' && (
                         <Controller
                           name={`campaigns.${index}.group_id`}
@@ -392,8 +385,8 @@ useEffect(() => {
                           render={({ field, fieldState: { error } }) => (
                             <TextField
                               {...field}
-                              fullWidth
                               select
+                              fullWidth
                               size="small"
                               label="Pilih Label / Tag"
                               error={!!error}
@@ -411,7 +404,7 @@ useEffect(() => {
                         />
                       )}
 
-                      {/* ✅ WAKTU PELUNCURAN (TIMER JADWAL) */}
+                      {/* Waktu Peluncuran (Timer) */}
                       <Controller
                         name={`campaigns.${index}.scheduled_at`}
                         control={control}
@@ -422,9 +415,9 @@ useEffect(() => {
                             fullWidth
                             type="datetime-local"
                             size="small"
-                            label="Jadwal Waktu Peluncuran"
+                            label="Waktu Peluncuran (Timer)"
                             error={!!error}
-                            helperText={error ? error.message : 'Pesan otomatis terkirim pada jam ini.'}
+                            helperText={error ? error.message : 'Pesan otomatis dikirim pada waktu ini.'}
                             sx={{ mt: 2 }}
                             InputLabelProps={{ shrink: true }}
                           />
@@ -433,7 +426,7 @@ useEffect(() => {
                     </Grid>
 
                     <Grid item xs={12} md={8}>
-                      {/* Isi Pesan Konten */}
+                      {/* Isi Pesan */}
                       <Controller
                         name={`campaigns.${index}.pesan`}
                         control={control}
@@ -444,10 +437,10 @@ useEffect(() => {
                             fullWidth
                             multiline
                             rows={6}
-                            label="Isi Pesan WhatsApp (Model Tampilan)"
-                            placeholder="Tulis format teks promosi/edukasi model ini disini..."
+                            label="Isi Teks Pesan"
+                            placeholder="Tulis model isi pesan Anda di sini..."
                             error={!!error}
-                            helperText={error?.message || 'Gunakan {name} untuk personalisasi nama pelanggan.'}
+                            helperText={error?.message || 'Mendukung tag custom {name}'}
                             InputLabelProps={{ shrink: true }}
                           />
                         )}
@@ -464,11 +457,10 @@ useEffect(() => {
             <Button 
               type="submit" 
               variant="contained" 
-              startIcon={<Send />} 
               disabled={loading} 
               sx={{ bgcolor: '#20bf6b', '&:hover': { bgcolor: '#199d56' }, textTransform: 'none' }}
             >
-              {loading ? 'Menyimpan Semua...' : `Proses ${fields.length} Kampanye`}
+              {loading ? 'Menyimpan...' : `Jadwalkan ${fields.length} Broadcast`}
             </Button>
           </DialogActions>
         </form>
