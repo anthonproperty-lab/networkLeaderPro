@@ -46,20 +46,31 @@ export const Dashboard: React.FC = () => {
 
   return (
     <Box p={3}>
-      <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', color: '#ecf0f1' }}>
+      {/* ✅ PERBAIKAN 1: Menggunakan 'text.primary' agar otomatis hitam di mode terang, putih di mode gelap */}
+      <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', color: 'text.primary' }}>
         Dasbor Ringkasan Analitik
       </Typography>
+      
       <Grid container spacing={3} mt={1}>
         {cards.map((card, idx) => (
           <Grid item xs={12} sm={6} md={3} key={idx}>
-            <Card sx={{ background: '#181c23', border: '1px solid #1f252f', borderRadius: '12px' }}>
+            {/* ✅ PERBAIKAN 2: Menggunakan background 'background.paper' agar warna box ikut berubah sesuai tema */}
+            <Card sx={{ 
+              backgroundColor: 'background.paper', 
+              backgroundImage: 'none', // Menghilangkan overlay default MUI pada dark mode
+              border: '1px solid',
+              borderColor: 'divider', // Border adaptif mengikuti tema
+              borderRadius: '12px' 
+            }}>
               <CardContent>
                 <Box display="flex" justifyContent="space-between" alignItems="center">
                   <Box>
-                    <Typography variant="subtitle2" color="textSecondary" sx={{ color: '#7f8c8d' }}>
+                    {/* ✅ PERBAIKAN 3: Menggunakan 'text.secondary' agar warna label lebih soft secara dinamis */}
+                    <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 500 }}>
                       {card.title}
                     </Typography>
-                    <Typography variant="h3" sx={{ fontWeight: 'bold', mt: 1, color: '#fff' }}>
+                    {/* ✅ PERBAIKAN 4: Mengubah warna angka menjadi 'text.primary' (bukan #fff statis) */}
+                    <Typography variant="h3" sx={{ fontWeight: 'bold', mt: 1, color: 'text.primary' }}>
                       {card.val}
                     </Typography>
                   </Box>
@@ -73,4 +84,5 @@ export const Dashboard: React.FC = () => {
     </Box>
   );
 };
+
 export default Dashboard;
