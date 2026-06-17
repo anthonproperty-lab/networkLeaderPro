@@ -108,7 +108,7 @@ export const Broadcasts: React.FC = () => {
         throw new Error('Target penerima kosong. Silakan periksa kembali daftar kontak pada kelompok ini.');
       }
 
-      // Masukkan log data kampanye baru ke tabel broadcasts
+      // PERBAIKAN: Menghapus properti 'gagal' dari payload karena kolom tidak ada di database
       const { error } = await supabase
         .from('broadcasts')
         .insert([
@@ -120,8 +120,7 @@ export const Broadcasts: React.FC = () => {
             pesan: data.pesan,
             total_target: totalTarget,
             terkirim: 0,
-            gagal: 0,
-            status: 'Pending'
+            status: 'Pending' // Kolom status bertipe varchar menerima string 'Pending' dengan aman
           }
         ]);
 
@@ -135,7 +134,7 @@ export const Broadcasts: React.FC = () => {
       setLoading(false);
     }
   };
-
+  
   return (
     <Box>
       {/* HEADER UTAMA */}
