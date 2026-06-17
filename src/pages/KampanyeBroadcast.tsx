@@ -90,11 +90,7 @@ export const KampanyeBroadcast: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, [user]);
-
-  // 2. Tangkap Pelemparan Data dari Template Pesan
+  // 2. Tangkap Pelemparan Data dari Template Pesan (Sudah Diperbaiki)
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const templateId = searchParams.get('use_template');
@@ -115,7 +111,7 @@ export const KampanyeBroadcast: React.FC = () => {
               campaigns: [
                 {
                   nama_kampanye: `Kampanye - ${data.judul || 'Template'}`,
-                  pesan: data.pesan || '',
+                  pesan: data.isi_pesan || '', // ✅ DIPERBAIKI: Menggunakan isi_pesan sesuai struktur tabel templates Anda
                   target_tipe: 'semua',
                   group_id: '',
                   scheduled_at: getLocalCurrentDateTime()
@@ -124,7 +120,9 @@ export const KampanyeBroadcast: React.FC = () => {
             });
             setOpenModal(true);
             toast.info(`Menggunakan draf template: ${data.judul}`);
-            navigate('/kampanye_broadcast', { replace: true });
+            
+            // ✅ DIPERBAIKI: Menggunakan tanda hubung '-' agar sinkron dengan App.tsx dan tidak mental ke dashboard
+            navigate('/kampanye-broadcast', { replace: true }); 
           }
         } catch (err: any) {
           console.error('Gagal memuat template:', err.message);
