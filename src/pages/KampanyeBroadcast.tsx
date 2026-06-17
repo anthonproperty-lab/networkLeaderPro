@@ -124,7 +124,7 @@ export const Broadcasts: React.FC = () => {
             });
             setOpenModal(true);
             toast.info(`Menggunakan draf template: ${data.judul}`);
-            navigate('/KampanyeBroadcast', { replace: true });
+            navigate('/kampanye_broadcast', { replace: true });
           }
         } catch (err: any) {
           console.error('Gagal memuat template:', err.message);
@@ -215,7 +215,7 @@ export const Broadcasts: React.FC = () => {
           onClick={handleOpenModal}
           sx={{ bgcolor: '#20bf6b', '&:hover': { bgcolor: '#199d56' }, textTransform: 'none' }}
         >
-          Buat Kampanye Sekaligus
+          Buat Banyak Kampanye
         </Button>
       </Box>
 
