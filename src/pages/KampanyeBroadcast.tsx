@@ -115,7 +115,7 @@ export const Broadcasts: React.FC = () => {
               campaigns: [
                 {
                   nama_kampanye: `Kampanye - ${data.judul || 'Template'}`,
-                  pesan: data.isi_pesan || '',
+                  pesan: data.pesan || '',
                   target_tipe: 'semua',
                   group_id: '',
                   scheduled_at: getLocalCurrentDateTime()
@@ -124,7 +124,7 @@ export const Broadcasts: React.FC = () => {
             });
             setOpenModal(true);
             toast.info(`Menggunakan draf template: ${data.judul}`);
-            navigate('/kampanye-broadcast', { replace: true });
+            navigate('/KampanyeBroadcast', { replace: true });
           }
         } catch (err: any) {
           console.error('Gagal memuat template:', err.message);
