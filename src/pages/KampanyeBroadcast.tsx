@@ -23,7 +23,7 @@ interface MultiBroadcastFormInput {
   campaigns: SingleBroadcastItem[];
 }
 
-export const Broadcasts: React.FC = () => {
+export const KampanyeBroadcast: React.FC = () => {
   const user = useAuthStore((state) => state.user);
   const location = useLocation();
   const navigate = useNavigate();
@@ -469,4 +469,4 @@ export const Broadcasts: React.FC = () => {
   );
 };
 
-export default Broadcasts;
+export default KampanyeBroadcast;
