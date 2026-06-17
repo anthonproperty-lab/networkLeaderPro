@@ -341,22 +341,22 @@ export const Broadcasts: React.FC = () => {
                     <Grid item xs={12} md={4}>
                       {/* Nama Kampanye */}
                       <Controller
-                        name={`campaigns.${index}.nama_kampanye`}
-                        control={control}
-                        rules={{ required: 'Nama kampanye wajib diisi' }}
-                        render={({ field, fieldState: { error } }) => (
-                          <TextField
-                            {...field}
-                            fullWidth
-                            size="small"
-                            label="Nama Kampanye"
-                            placeholder="Contoh: Diskon Model A"
-                            error={!!error}
-                            helperText={error?.message}
-                            InputLabelProps={{ shrink: true }}
-                          />
-                        )}
-                      />
+  name={`campaigns.${index}.nama_kampanye`}
+  control={control}
+  rules={{ required: 'Nama kampanye wajib diisi' }}
+  render={({ field, fieldState: { error } }) => (
+    <TextField
+      {...field}
+      fullWidth
+      size="small"
+      label="Nama Kampanye"
+      placeholder="Contoh: Diskon Model A"
+      error={!!error}
+      helperText={error?.message}
+      InputLabelProps={{ shrink: true }}
+    />
+  )}
+/>
 
                       {/* Tipe Target */}
                       <Controller
