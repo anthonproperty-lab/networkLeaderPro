@@ -94,47 +94,52 @@ export const Broadcasts: React.FC = () => {
     fetchData();
   }, [user]);
 
-  // ✨ DETEKSI DAN AUTO-FILL TEMPLATE DARI URL PARAMS
-  useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const templateId = searchParams.get('use_template');
+ // ✨ DETEKSI DAN AUTO-FILL TEMPLATE DARI URL PARAMS (KONEKSI KE TEMPLATE PESAN)
+useEffect(() => {
+  const searchParams = new URLSearchParams(location.search);
+  const templateId = searchParams.get('use_template');
 
-    if (templateId && user) {
-      const loadSelectedTemplate = async () => {
-        try {
-          const { data, error } = await supabase
-            .from('templates')
-            .select('*')
-            .eq('id', templateId)
-            .single();
+  if (templateId && user) {
+    const loadSelectedTemplate = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('templates')
+          .select('*')
+          .eq('id', templateId)
+          .single();
 
-          if (error) throw error;
+        if (error) throw error;
 
-          if (data) {
-            // Set ke baris pertama draf
-            reset({
-              campaigns: [
-                {
-                  nama_kampanye: `Kampanye - ${data.judul}`,
-                  pesan: data.isi_pesan,
-                  target_tipe: 'semua',
-                  group_id: '',
-                  scheduled_at: getLocalCurrentDateTime()
-                }
-              ]
-            });
-            
-            setOpenModal(true);
-            toast.info(`Menggunakan draf template: ${data.judul}`);
-            navigate('/kampanye-broadcast', { replace: true });
-          }
-        } catch (err: any) {
-          console.error('Gagal memuat template:', err.message);
+        if (data) {
+          // ✅ HUBUNGKAN KE FORM MULTI-BATCH (Isi otomatis baris pertama)
+          reset({
+            campaigns: [
+              {
+                nama_kampanye: `Kampanye - ${data.judul || data.name || 'Template'}`,
+                pesan: data.isi_pesan || data.content || '',
+                target_tipe: 'semua',
+                group_id: '',
+                scheduled_at: getLocalCurrentDateTime()
+              }
+            ]
+          });
+          
+          // Otomatis buka modal untuk pengguna
+          setOpenModal(true);
+          toast.info(`Menggunakan draf template: ${data.judul || data.name}`);
+          
+          // Bersihkan URL parameter agar saat di-refresh modal tidak terus terbuka
+          navigate('/kampanye-broadcast', { replace: true });
         }
-      };
-      loadSelectedTemplate();
-    }
-  }, [location.search, user, reset, navigate]);
+      } catch (err: any) {
+        console.error('Gagal memuat template ke formulir:', err.message);
+        toast.error('Gagal memuat data template pesan.');
+      }
+    };
+
+    loadSelectedTemplate();
+  }
+}, [location.search, user, reset, navigate]);
 
   const handleOpenModal = () => {
     reset({
