@@ -12,11 +12,11 @@ import { toast } from 'react-toastify';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 interface SingleBroadcastItem {
-  nama_kampanye: string; // 📋 Sesuai kolom database Anda
-  target_tipe: 'semua' | 'grup'; // 📋 Sesuai kolom database Anda
-  group_id: string; // 📋 Sesuai kolom database Anda
-  pesan: string; // 📋 Sesuai kolom database Anda
-  scheduled_at: string; // 📋 Sesuai kolom database Anda (Format HTML: YYYY-MM-DDTHH:mm)
+  nama_kampanye: string; 
+  target_tipe: 'semua' | 'grup'; 
+  group_id: string; 
+  pesan: string; 
+  scheduled_at: string; 
 }
 
 interface MultiBroadcastFormInput {
@@ -25,8 +25,11 @@ interface MultiBroadcastFormInput {
 
 export const KampanyeBroadcast: React.FC = () => {
   const user = useAuthStore((state) => state.user);
+  const [dataLoading, setDataLoading] = useState<boolean>(true); 
   const location = useLocation();
   const navigate = useNavigate();
+  
+  // 💡 PERBAIKAN: Menghapus duplikasi deklarasi state broadcasts
   const [broadcasts, setBroadcasts] = useState<any[]>([]);
   const [groups, setGroups] = useState<any[]>([]);
   const [openModal, setOpenModal] = useState<boolean>(false);
@@ -56,11 +59,18 @@ export const KampanyeBroadcast: React.FC = () => {
 
   // 1. Ambil Riwayat Langsung dari Tabel 'broadcasts'
   const fetchData = async () => {
-    if (!user) return;
+    // 💡 PERBAIKAN: Return dengan mematikan loading jika auth user belum siap (mencegah bug riwayat hilang saat refresh)
+    if (!user) {
+      setDataLoading(false);
+      return;
+    }
+    
     try {
+      setDataLoading(true);
       const { data, error } = await supabase
         .from('broadcasts')
         .select('*')
+        .eq('user_id', user.id) // 🔒 PERBAIKAN: Hanya mengambil riwayat milik user ini sendiri
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -70,12 +80,14 @@ export const KampanyeBroadcast: React.FC = () => {
       const { data: dataGrup, error: errGrup } = await supabase
         .from('tags')
         .select('id, name')
+        .eq('user_id', user.id) // 🔒 PERBAIKAN: Saring opsi tag berdasarkan user pemilik agar tidak campur aduk
         .order('name', { ascending: true });
 
       if (errGrup) {
         const { data: dataAlt, error: errAlt } = await supabase
           .from('tags')
           .select('id, nama_tag') 
+          .eq('user_id', user.id)
           .order('nama_tag', { ascending: true });
         
         if (!errAlt) {
@@ -87,10 +99,17 @@ export const KampanyeBroadcast: React.FC = () => {
       setGroups(dataGrup?.map(t => ({ id: t.id, name: t.name })) || []);
     } catch (err: any) {
       toast.error(`Gagal memuat data: ${err.message}`);
+    } finally {
+      setDataLoading(false); 
     }
   };
 
-  // 2. Tangkap Pelemparan Data dari Template Pesan (Sudah Diperbaiki)
+  // Pemicu muat ulang data riwayat ketika user login berhasil dimuat
+  useEffect(() => {
+    fetchData();
+  }, [user]);
+
+  // 2. Tangkap Pelemparan Data dari Template Pesan
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const templateId = searchParams.get('use_template');
@@ -111,7 +130,7 @@ export const KampanyeBroadcast: React.FC = () => {
               campaigns: [
                 {
                   nama_kampanye: `Kampanye - ${data.judul || 'Template'}`,
-                  pesan: data.isi_pesan || '', // ✅ DIPERBAIKI: Menggunakan isi_pesan sesuai struktur tabel templates Anda
+                  pesan: data.isi_pesan || '', 
                   target_tipe: 'semua',
                   group_id: '',
                   scheduled_at: getLocalCurrentDateTime()
@@ -120,8 +139,6 @@ export const KampanyeBroadcast: React.FC = () => {
             });
             setOpenModal(true);
             toast.info(`Menggunakan draf template: ${data.judul}`);
-            
-            // ✅ DIPERBAIKI: Menggunakan tanda hubung '-' agar sinkron dengan App.tsx dan tidak mental ke dashboard
             navigate('/kampanye-broadcast', { replace: true }); 
           }
         } catch (err: any) {
@@ -141,6 +158,7 @@ export const KampanyeBroadcast: React.FC = () => {
 
   // 3. Simpan Banyak Kampanye Sekaligus (Bulk Insert) ke Tabel 'broadcasts'
   const handleSimpanBanyakBroadcast = async (formData: MultiBroadcastFormInput) => {
+    if (!user) return;
     setLoading(true);
     try {
       const payloadInsert = [];
@@ -149,9 +167,15 @@ export const KampanyeBroadcast: React.FC = () => {
         let totalTarget = 0;
         
         if (item.target_tipe === 'semua') {
-          const { count } = await supabase.from('contacts').select('*', { count: 'exact', head: true });
+          // 🔒 PERBAIKAN: Hitung jumlah kontak hanya milik user ini sendiri
+          const { count } = await supabase
+            .from('contacts')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.id);
+            
           totalTarget = count || 0;
         } else if (item.group_id) {
+          // Jika ditargetkan ke label/grup tertentu
           const { count, error: errCount } = await supabase
             .from('contact_tags')
             .select('*', { count: 'exact', head: true })
@@ -170,7 +194,7 @@ export const KampanyeBroadcast: React.FC = () => {
         const statusKampanye = waktuKirim > skrg ? 'Scheduled' : 'Pending';
 
         payloadInsert.push({
-          user_id: user?.id,
+          user_id: user.id, // Menyimpan pemilik data kampanye
           nama_kampanye: item.nama_kampanye,
           target_tipe: item.target_tipe,
           group_id: item.target_tipe === 'grup' ? item.group_id : null,
@@ -178,19 +202,18 @@ export const KampanyeBroadcast: React.FC = () => {
           total_target: totalTarget,
           terkirim: 0,
           status: statusKampanye,
-          scheduled_at: waktuKirim.toISOString(), // 📋 Masuk dengan format timestamptz aman
+          scheduled_at: waktuKirim.toISOString(), 
           failed: 0
         });
       }
 
-      // Langsung push sekaligus dalam 1 request ke Supabase
       const { error } = await supabase.from('broadcasts').insert(payloadInsert);
       if (error) throw error;
 
       toast.success(`${payloadInsert.length} Kampanye terjadwal berhasil disimpan!`);
       setOpenModal(false);
       fetchData();
-    } catch (err: any) {
+    } catch (err: any) { // 💡 PERBAIKAN: Penempatan letak catch block yang salah sintaksis sebelumnya
       toast.error(`Gagal menyimpan: ${err.message}`);
     } finally {
       setLoading(false);
@@ -232,7 +255,17 @@ export const KampanyeBroadcast: React.FC = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {broadcasts.length === 0 ? (
+              {/* 💡 PERBAIKAN INTEGRASI: Menampilkan linear loading progress sewaktu state dataLoading bernilai true */}
+              {dataLoading ? (
+                <TableRow>
+                  <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
+                    <LinearProgress sx={{ width: '30%', margin: '0 auto' }} />
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                      Sedang menyinkronkan data kampanye...
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ) : broadcasts.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} align="center" sx={{ py: 6, color: 'text.secondary' }}>
                     Belum ada riwayat kampanye broadcast massal.
@@ -283,8 +316,8 @@ export const KampanyeBroadcast: React.FC = () => {
                           label={item.status} 
                           size="small" 
                           color={
-                            item.status === 'Completed' || item.status === 'Selesai' ? 'success' : 
-                            item.status === 'Berjalan' ? 'primary' : 
+                            item.status === 'Completed' ? 'success' : 
+                            item.status === 'Processing' ? 'primary' : 
                             item.status === 'Scheduled' ? 'secondary' : 'warning'
                           } 
                         />
