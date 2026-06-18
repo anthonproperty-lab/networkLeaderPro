@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, createTheme, CssBaseline, Box } from '@mui/material';
+import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { TagsManagement } from './pages/TagsManagement';
@@ -29,7 +29,8 @@ import Notifikasi from './pages/Notifikasi';
 import Bantuan from './pages/Bantuan';
 
 export default function App() {
-  const { checkUser, initialized } = useAuthStore();
+  // 🎯 PERBAIKAN: Menyisipkan 'user' agar dikenali oleh sistem routing di bawah
+  const { user, checkUser, initialized } = useAuthStore();
   const [darkMode, setDarkMode] = useState<boolean>(true);
 
   // Sinkronisasi status autentikasi pengguna saat aplikasi pertama kali dimuat
@@ -118,10 +119,11 @@ export default function App() {
               <Route path="/kontak" element={<KontakDirektori />} />
               <Route path="/kontak/tambah" element={<KontakForm mode="create" />} />
               <Route path="/kontak/edit/:id" element={<KontakForm mode="edit" />} />
-              {/* 🔒 PROTEKSI ROUTE ADMIN: Hanya izinkan email Anda selaku owner utama */}
+              
+              {/* 🔒 PROTEKSI ROUTE ADMIN: Membaca data 'user' yang kini sudah didefinisikan di atas */}
               {user?.email === "anthonproperty@gmail.com" && (
-              <Route path="/admin-panel" element={<AdminDashboard />} />
-               )}
+                <Route path="/admin-panel" element={<AdminDashboard />} />
+              )}
               
               {/* Aktivitas CRM */}
               <Route path="/follow-up" element={<FollowUp />} />
