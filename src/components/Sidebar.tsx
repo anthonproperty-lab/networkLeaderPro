@@ -135,4 +135,4 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, drawerWid
 
 export default Sidebar;
 
-export default Sidebar;
+
