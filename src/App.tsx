@@ -121,8 +121,8 @@ export default function App() {
               <Route path="/kontak/edit/:id" element={<KontakForm mode="edit" />} />
               
               {/* 🔒 PROTEKSI ROUTE ADMIN: Membaca data 'user' yang kini sudah didefinisikan di atas */}
-              {user?.email === "anthonproperty@gmail.com" && (
-                <Route path="/admin-panel" element={<AdminDashboard />} />
+              {(user?.role === 'super_admin' || user?.role === 'admin') && (
+              <Route path="/admin-panel" element={<AdminDashboard />} />
               )}
               
               {/* Aktivitas CRM */}
