@@ -40,31 +40,32 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, drawerWid
     });
   }
   const drawerContent = (
-<Box
-  sx={{
-    display: 'flex',
-    alignItems: 'center',
-    gap: 1.5,
-    px: 3,
-    py: 2.5,
-    cursor: 'pointer'
-  }}
-  onClick={() => navigate('/dashboard')}
->
-  <Box
-    component="img"
-    src="/logo.png"
-    alt="Logo Aplikasi"
-    sx={{ height: 40, width: 'auto', objectFit: 'contain' }}
-    onError={() => {
-      console.error("Logo gagal dimuat, periksa lokasi file!");
-    }}
-  />
+  <Box sx={{ overflow: 'auto' }}>
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 1.5,
+        px: 3,
+        py: 2.5,
+        cursor: 'pointer'
+      }}
+      onClick={() => navigate('/dashboard')}
+    >
+      <Box
+        component="img"
+        src="/logo.png"
+        alt="Logo Aplikasi"
+        sx={{ height: 40, width: 'auto', objectFit: 'contain' }}
+        onError={() => {
+          console.error('Logo gagal dimuat, periksa lokasi file!');
+        }}
+      />
 
-  <Typography variant="h6">
-    Forward CRM
-  </Typography>
-</Box>
+      <Typography variant="h6">
+        Forward CRM
+      </Typography>
+    </Box>
 
 <List>
         {menuItems.map((item) => {
