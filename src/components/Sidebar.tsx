@@ -5,6 +5,8 @@ import {
   Campaign, AccountCircle, Notifications, HelpCenter // 💡 TAMBAHAN: Import ikon baru di sini
 } from '@mui/icons-material';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../stores/authStore'; // 💡 Pastikan store auth di-import di Sidebar.tsx
+import { SupervisorAccount } from '@mui/icons-material'; // Import ikon admin
 
 interface SidebarProps {
   mobileOpen: boolean;
@@ -15,7 +17,8 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, drawerWidth }) => {
   const location = useLocation();
   const navigate = useNavigate();
-
+  const user = useAuthStore((state) => state.user);
+  
   // 📋 Tambahan rute /notifications dan /bantuan ke dalam menuItems
   const menuItems = [
     { text: 'Dasbor Analitik', icon: <Dashboard />, path: '/dashboard' },
@@ -28,7 +31,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, drawerWid
     { text: 'Pusat Bantuan (FAQ)', icon: <HelpCenter />, path: '/bantuan' }, // 🎯 TAMBAHAN BARU
     { text: 'Profil Akun', icon: <AccountCircle />, path: '/profil' },
   ];
-
+// 🔑 SUNTIKAN KHUSUS ADMIN: Jika email Anda yang login, tambahkan menu Admin Panel ke baris paling bawah
+  if (user?.email === "admin_forwardcrm@gmail.com") {
+    menuItems.push({ 
+      text: 'Admin Panel Control', 
+      icon: <SupervisorAccount sx={{ color: '#e74c3c' }} />, 
+      path: '/admin-panel' 
+    });
+  }
   const drawerContent = (
     <Box sx={{ overflow: 'auto' }}>
       <Box 
