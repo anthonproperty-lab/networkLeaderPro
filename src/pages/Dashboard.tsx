@@ -103,11 +103,37 @@ export const Dashboard: React.FC = () => {
   return (
     <Box p={3}>
       {/* ⚠️ BANNER PEMBERITAHUAN JIKA USER DI-BLOCK */}
-      {quotaData.isBlocked && (
-        <Box mb={3} p={2} bgcolor="#ff7675" borderRadius="8px" color="#fff" sx={{ fontWeight: 'bold' }}>
-          ⚠️ Akun Anda Ditangguhkan! Kuota token pengiriman pesan telah habis. Silakan hubungi admin untuk melakukan perpanjangan paket.
-        </Box>
-      )}
+     {quotaData.isBlocked && (
+  <Box 
+    mb={3} 
+    p={2} 
+    bgcolor="#ff7675" 
+    borderRadius="8px" 
+    color="#fff" 
+    display="flex" 
+    justifyContent="space-between" 
+    alignItems="center"
+    flexWrap="wrap"
+    gap={2}
+  >
+    <Typography sx={{ fontWeight: 'bold' }}>
+      ⚠️ Akun Anda Ditangguhkan! Kuota token pengiriman pesan telah habis. Silakan hubungi admin untuk melakukan perpanjangan paket.
+    </Typography>
+    <Button 
+      variant="contained" 
+      color="success"
+      size="small"
+      onClick={() => {
+        const nomorAdmin = "628xxxxxxxxxx"; // 📞 Ganti dengan nomor WhatsApp Anda (awali dengan 62)
+        const pesan = encodeURIComponent(`Halo Admin, akun saya ditangguhkan karena kuota token habis. Saya ingin konfirmasi untuk upgrade/isi ulang paket.\n\nEmail Akun: ${user?.email}`);
+        window.open(`https://wa.me/${nomorAdmin}?text=${pesan}`, '_blank');
+      }}
+      sx={{ bgcolor: '#2ecc71', '&:hover': { bgcolor: '#27ae60' }, fontWeight: 'bold' }}
+    >
+      Hubungi Admin via WA
+    </Button>
+  </Box>
+)}
 
       <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', color: 'text.primary' }}>
         Dasbor Ringkasan Analitik
