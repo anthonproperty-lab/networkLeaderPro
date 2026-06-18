@@ -2,11 +2,10 @@ import React from 'react';
 import { Drawer, List, ListItemButton, ListItemIcon, ListItemText, Box, Typography } from '@mui/material';
 import { 
   Dashboard, People, Label, Schedule, Message, 
-  Campaign, AccountCircle, Notifications, HelpCenter // 💡 TAMBAHAN: Import ikon baru di sini
+  Campaign, AccountCircle, Notifications, HelpCenter, SupervisorAccount
 } from '@mui/icons-material';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../stores/authStore'; // 💡 Pastikan store auth di-import di Sidebar.tsx
-import { SupervisorAccount } from '@mui/icons-material'; // Import ikon admin
+import { useAuthStore } from '../stores/authStore';
 
 interface SidebarProps {
   mobileOpen: boolean;
@@ -14,12 +13,18 @@ interface SidebarProps {
   drawerWidth: number;
 }
 
+// 🔐 SINKRONISASI ARRAY EMAIL ADMIN (Sama persis dengan yang ada di AdminDashboard.tsx)
+const ADMIN_LIST = [
+  "anthonproperty@gmail.com",    // Owner Utama (Super Admin)
+  "afisq5@gmail.com",  // Staf Admin 1
+];
+
 export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, drawerWidth }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   
-  // 📋 Tambahan rute /notifications dan /bantuan ke dalam menuItems
+  // 📋 Menu utama untuk seluruh tenant
   const menuItems = [
     { text: 'Dasbor Analitik', icon: <Dashboard />, path: '/dashboard' },
     { text: 'Direktori Kontak', icon: <People />, path: '/kontak' },
@@ -27,47 +32,49 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, drawerWid
     { text: 'Jadwal Follow Up', icon: <Schedule />, path: '/follow-up' },
     { text: 'Template Pesan', icon: <Message />, path: '/template-pesan' },
     { text: 'Kampanye Broadcast', icon: <Campaign />, path: '/kampanye-broadcast' },
-    { text: 'Notifikasi', icon: <Notifications />, path: '/notifications' }, // 🎯 TAMBAHAN BARU
-    { text: 'Pusat Bantuan (FAQ)', icon: <HelpCenter />, path: '/bantuan' }, // 🎯 TAMBAHAN BARU
+    { text: 'Notifikasi', icon: <Notifications />, path: '/notifications' },
+    { text: 'Pusat Bantuan (FAQ)', icon: <HelpCenter />, path: '/bantuan' },
     { text: 'Profil Akun', icon: <AccountCircle />, path: '/profil' },
   ];
-// 🔑 SUNTIKAN KHUSUS ADMIN: Jika email Anda yang login, tambahkan menu Admin Panel ke baris paling bawah
- if (user?.role === 'super_admin' || user?.role === 'admin') {
-  menuItems.push({ 
-    text: 'Admin Panel Control', 
-    icon: <SupervisorAccount sx={{ color: '#e74c3c' }} />, 
-    path: '/admin-panel' 
-  });
-}
+
+  // 🔑 SUNTIKAN BERBASIS ARRAY EMAIL: Validasi apakah email user terdaftar sebagai admin
+  const userEmail = user?.email?.toLowerCase() || '';
+  if (userEmail && ADMIN_LIST.includes(userEmail)) {
+    menuItems.push({ 
+      text: 'Admin Panel Control', 
+      icon: <SupervisorAccount sx={{ color: '#e74c3c' }} />, 
+      path: '/admin-panel' 
+    });
+  }
+
   const drawerContent = (
-  <Box sx={{ overflow: 'auto' }}>
-    <Box
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 1.5,
-        px: 3,
-        py: 2.5,
-        cursor: 'pointer'
-      }}
-      onClick={() => navigate('/dashboard')}
-    >
+    <Box sx={{ overflow: 'auto' }}>
       <Box
-        component="img"
-        src="/logo.png"
-        alt="Logo Aplikasi"
-        sx={{ height: 40, width: 'auto', objectFit: 'contain' }}
-        onError={() => {
-          console.error('Logo gagal dimuat, periksa lokasi file!');
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1.5,
+          px: 3,
+          py: 2.5,
+          cursor: 'pointer'
         }}
-      />
+        onClick={() => navigate('/dashboard')}
+      >
+        <Box
+          component="img"
+          src="/logo.png"
+          alt="Logo Aplikasi"
+          sx={{ height: 40, width: 'auto', objectFit: 'contain' }}
+          onError={() => {
+            console.error('Logo gagal dimuat, periksa lokasi file!');
+          }}
+        />
+        <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#0984e3' }}>
+          Forward CRM
+        </Typography>
+      </Box>
 
-      <Typography variant="h6">
-        Forward CRM
-      </Typography>
-    </Box>
-
-<List>
+      <List>
         {menuItems.map((item) => {
           const active = location.pathname.startsWith(item.path);
           return (
@@ -125,5 +132,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, drawerWid
     </Box>
   );
 };
+
+export default Sidebar;
 
 export default Sidebar;
