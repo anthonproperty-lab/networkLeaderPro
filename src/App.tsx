@@ -28,8 +28,13 @@ import Profil from './pages/Profil';
 import Notifikasi from './pages/Notifikasi';
 import Bantuan from './pages/Bantuan';
 
+// 🔐 SINKRONISASI ARRAY EMAIL ADMIN (Wajib sama dengan Sidebar.tsx & AdminDashboard.tsx)
+const ADMIN_LIST = [
+  "anthonproperty@gmail.com",    // Owner Utama (Super Admin)
+  "afisq5@gmail.com",  // Staf Admin 1
+];
+
 export default function App() {
-  // 🎯 PERBAIKAN: Menyisipkan 'user' agar dikenali oleh sistem routing di bawah
   const { user, checkUser, initialized } = useAuthStore();
   const [darkMode, setDarkMode] = useState<boolean>(true);
 
@@ -93,6 +98,9 @@ export default function App() {
     );
   }
 
+  // Mengubah email saat ini ke lowercase untuk menghindari isu case-sensitive typing
+  const userEmail = user?.email?.toLowerCase() || '';
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -120,9 +128,9 @@ export default function App() {
               <Route path="/kontak/tambah" element={<KontakForm mode="create" />} />
               <Route path="/kontak/edit/:id" element={<KontakForm mode="edit" />} />
               
-              {/* 🔒 PROTEKSI ROUTE ADMIN: Membaca data 'user' yang kini sudah didefinisikan di atas */}
-              {(user?.role === 'super_admin' || user?.role === 'admin') && (
-              <Route path="/admin-panel" element={<AdminDashboard />} />
+              {/* 🔒 PROTEKSI ROUTE ADMIN: Memvalidasi kecocokan email dengan daftar ADMIN_LIST */}
+              {userEmail && ADMIN_LIST.includes(userEmail) && (
+                <Route path="/admin-panel" element={<AdminDashboard />} />
               )}
               
               {/* Aktivitas CRM */}
