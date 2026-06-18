@@ -31,7 +31,7 @@ import Bantuan from './pages/Bantuan';
 // 🔐 SINKRONISASI ARRAY EMAIL ADMIN (Wajib sama dengan Sidebar.tsx & AdminDashboard.tsx)
 const ADMIN_LIST = [
   "anthonproperty@gmail.com",    // Owner Utama (Super Admin)
-  "afisq5@gmail.com",  // Staf Admin 1
+  "afisq5@gmail.com",  // Staf Admin 
 ];
 
 export default function App() {
