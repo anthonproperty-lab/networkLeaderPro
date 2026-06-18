@@ -32,13 +32,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, drawerWid
     { text: 'Profil Akun', icon: <AccountCircle />, path: '/profil' },
   ];
 // 🔑 SUNTIKAN KHUSUS ADMIN: Jika email Anda yang login, tambahkan menu Admin Panel ke baris paling bawah
-  if (user?.email === "anthonproperty@gmail.com") {
-    menuItems.push({ 
-      text: 'Admin Panel Control', 
-      icon: <SupervisorAccount sx={{ color: '#e74c3c' }} />, 
-      path: '/admin-panel' 
-    });
-  }
+ if (user?.role === 'super_admin' || user?.role === 'admin') {
+  menuItems.push({ 
+    text: 'Admin Panel Control', 
+    icon: <SupervisorAccount sx={{ color: '#e74c3c' }} />, 
+    path: '/admin-panel' 
+  });
+}
   const drawerContent = (
   <Box sx={{ overflow: 'auto' }}>
     <Box
