@@ -24,6 +24,7 @@ import FollowUp from './pages/FollowUp';
 import TemplatePesan from './pages/TemplatePesan';
 import KampanyeBroadcast from './pages/KampanyeBroadcast';
 import Profil from './pages/Profil';
+import Notifikasi from './pages/Notifikasi';
 
 export default function App() {
   const { checkUser, initialized } = useAuthStore();
@@ -107,6 +108,8 @@ export default function App() {
               {/* Dasbor Ringkasan */}
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/label" element={<TagsManagement />} />
+              {/* Pusat Notifikasi Sistem & Admin */}
+              <Route path="/notifications" element={<Notifikasi />} />
               {/* Manajemen Kontak (CRUD) */}
               <Route path="/kontak" element={<KontakDirektori />} />
               <Route path="/kontak/tambah" element={<KontakForm mode="create" />} />
