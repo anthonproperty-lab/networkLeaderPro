@@ -13,6 +13,7 @@ import { GuardedRoute } from './components/GuardedRoute';
 import { DashboardLayout } from './layouts/DashboardLayout';
 
 // Pages
+import { AdminDashboard } from './pages/AdminDashboard';
 import Splash from './pages/Splash';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -117,6 +118,10 @@ export default function App() {
               <Route path="/kontak" element={<KontakDirektori />} />
               <Route path="/kontak/tambah" element={<KontakForm mode="create" />} />
               <Route path="/kontak/edit/:id" element={<KontakForm mode="edit" />} />
+              {/* 🔒 PROTEKSI ROUTE ADMIN: Hanya izinkan email Anda selaku owner utama */}
+              {user?.email === "anthonproperty@gmail.com" && (
+              <Route path="/admin-panel" element={<AdminDashboard />} />
+               )}
               
               {/* Aktivitas CRM */}
               <Route path="/follow-up" element={<FollowUp />} />
