@@ -42,16 +42,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, drawerWid
         }}
         onClick={() => navigate('/dashboard')}
       >
-        <Box 
-          component="img" 
-          src={`${import.meta.env.BASE_URL}logo.png`}
-          alt="Logo Aplikasi" 
-          sx={{ height: 40, width: 'auto', objectFit: 'contain' }} 
-        />
-        <Typography variant="h6" sx={{ fontWeight: 'bold', fontSize: '1.1rem', color: '#0984e3' }}>
-          FORWARD CRM
-        </Typography>
-      </Box>
+       <Box 
+  component="img" 
+  src="/logo.png"
+  alt="Logo Aplikasi" 
+  sx={{ height: 40, width: 'auto', objectFit: 'contain' }} 
+  onError={(e) => {
+    console.error("Logo gagal dimuat, periksa lokasi file!");
+  }}
+/>
 
       <List>
         {menuItems.map((item) => {
