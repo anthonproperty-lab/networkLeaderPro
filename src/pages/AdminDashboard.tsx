@@ -57,8 +57,6 @@ export const AdminDashboard: React.FC = () => {
 
     } catch (error: any) {
       toast.error(`Gagal memuat data admin: ${error.message}`);
-    } catch (err: any) {
-      toast.error(`Terjadi kesalahan internal: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -135,7 +133,6 @@ export const AdminDashboard: React.FC = () => {
       {/* Widget Ringkasan */}
       <Grid container spacing={3} mb={4}>
         <Grid item xs={12} sm={6} md={4}>
-          {/* 🎯 PERBAIKAN: Mengubah justifyBetween menjadi justifyContent */}
           <Card sx={{ p: 2.5, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Box>
               <Typography variant="subtitle2" color="text.secondary">Total Tenant Terdaftar</Typography>
@@ -182,7 +179,6 @@ export const AdminDashboard: React.FC = () => {
                 <TableCell sx={{ fontWeight: 'bold' }}>Level Paket</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Token Digunakan</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Status Akses</TableCell>
-                {/* 🎯 PERBAIKAN: Mengubah textCenter menjadi align="center" */}
                 <TableCell align="center" sx={{ fontWeight: 'bold' }}>Aksi Kendali</TableCell>
               </TableRow>
             </TableHead>
