@@ -1,10 +1,10 @@
 import React from 'react';
 import { Drawer, List, ListItemButton, ListItemIcon, ListItemText, Box, Typography } from '@mui/material';
-import { Dashboard, People, Label, Schedule, Message, Campaign, AccountCircle } from '@mui/icons-material';
+import { 
+  Dashboard, People, Label, Schedule, Message, 
+  Campaign, AccountCircle, Notifications, HelpCenter // 💡 TAMBAHAN: Import ikon baru di sini
+} from '@mui/icons-material';
 import { useLocation, useNavigate } from 'react-router-dom';
-
-// HAPUS ATAU KOMENTARI BARIS IMPORT GAMBAR YANG LAMA
-// import LogoApp from '../assets/logo.png'; 
 
 interface SidebarProps {
   mobileOpen: boolean;
@@ -16,6 +16,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, drawerWid
   const location = useLocation();
   const navigate = useNavigate();
 
+  // 📋 Tambahan rute /notifications dan /bantuan ke dalam menuItems
   const menuItems = [
     { text: 'Dasbor Analitik', icon: <Dashboard />, path: '/dashboard' },
     { text: 'Direktori Kontak', icon: <People />, path: '/kontak' },
@@ -23,6 +24,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, drawerWid
     { text: 'Jadwal Follow Up', icon: <Schedule />, path: '/follow-up' },
     { text: 'Template Pesan', icon: <Message />, path: '/template-pesan' },
     { text: 'Kampanye Broadcast', icon: <Campaign />, path: '/kampanye-broadcast' },
+    { text: 'Notifikasi', icon: <Notifications />, path: '/notifications' }, // 🎯 TAMBAHAN BARU
+    { text: 'Pusat Bantuan (FAQ)', icon: <HelpCenter />, path: '/bantuan' }, // 🎯 TAMBAHAN BARU
     { text: 'Profil Akun', icon: <AccountCircle />, path: '/profil' },
   ];
 
@@ -39,7 +42,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, drawerWid
         }}
         onClick={() => navigate('/dashboard')}
       >
-        {/* PERBAIKAN: Langsung panggil nama file dari folder public dengan "/" */}
         <Box 
           component="img" 
           src={`${import.meta.env.BASE_URL}logo.png`}
