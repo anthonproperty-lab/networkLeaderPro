@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { 
   Box, Typography, Grid, Card, Table, TableBody, TableCell, 
   TableContainer, TableHead, TableRow, Paper, Chip, Button, 
-  Tabs, Tab, CircularProgress, IconButton, Tooltip 
+  Tabs, Tab, CircularProgress, IconButton 
 } from '@mui/material';
 import { SupervisorAccount, ConfirmationNumber, Block, CheckCircle, Refresh } from '@mui/icons-material';
 import { supabase } from '../services/supabaseClient';
@@ -13,7 +13,7 @@ interface UserProfile {
   member_level: string;
   token_used: number;
   is_blocked: boolean;
-  email?: string; // Diambil via join jika relasi auth diatur, atau gunakan field email di profiles
+  email?: string;
 }
 
 interface SupportTicket {
@@ -57,6 +57,8 @@ export const AdminDashboard: React.FC = () => {
 
     } catch (error: any) {
       toast.error(`Gagal memuat data admin: ${error.message}`);
+    } catch (err: any) {
+      toast.error(`Terjadi kesalahan internal: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -133,30 +135,31 @@ export const AdminDashboard: React.FC = () => {
       {/* Widget Ringkasan */}
       <Grid container spacing={3} mb={4}>
         <Grid item xs={12} sm={6} md={4}>
+          {/* 🎯 PERBAIKAN: Mengubah justifyBetween menjadi justifyContent */}
           <Card sx={{ p: 2.5, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Box>
               <Typography variant="subtitle2" color="text.secondary">Total Tenant Terdaftar</Typography>
               <Typography variant="h4" sx={{ fontWeight: 'bold', mt: 0.5 }}>{tenants.length}</Typography>
             </Box>
-            <SupervisorAccount fontSize="large" color="primary" sx={{ ml: 'auto' }} />
+            <SupervisorAccount fontSize="large" color="primary" />
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={4}>
-          <Card sx={{ p: 2.5, borderRadius: '12px', display: 'flex', alignItems: 'center' }}>
+          <Card sx={{ p: 2.5, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Box>
               <Typography variant="subtitle2" color="text.secondary">Akun Ditangguhkan (Blokir)</Typography>
               <Typography variant="h4" sx={{ fontWeight: 'bold', mt: 0.5, color: '#ff7675' }}>{totalTerblokir}</Typography>
             </Box>
-            <Block fontSize="large" color="error" sx={{ ml: 'auto' }} />
+            <Block fontSize="large" color="error" />
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={4}>
-          <Card sx={{ p: 2.5, borderRadius: '12px', display: 'flex', alignItems: 'center' }}>
+          <Card sx={{ p: 2.5, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Box>
               <Typography variant="subtitle2" color="text.secondary">Tiket Bantuan Aktif</Typography>
               <Typography variant="h4" sx={{ fontWeight: 'bold', mt: 0.5, color: '#f1c40f' }}>{tiketTerbuka}</Typography>
             </Box>
-            <ConfirmationNumber fontSize="large" color="warning" sx={{ ml: 'auto' }} />
+            <ConfirmationNumber fontSize="large" color="warning" />
           </Card>
         </Grid>
       </Grid>
@@ -179,6 +182,7 @@ export const AdminDashboard: React.FC = () => {
                 <TableCell sx={{ fontWeight: 'bold' }}>Level Paket</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Token Digunakan</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Status Akses</TableCell>
+                {/* 🎯 PERBAIKAN: Mengubah textCenter menjadi align="center" */}
                 <TableCell align="center" sx={{ fontWeight: 'bold' }}>Aksi Kendali</TableCell>
               </TableRow>
             </TableHead>
@@ -187,7 +191,7 @@ export const AdminDashboard: React.FC = () => {
                 <TableRow key={tenant.id}>
                   <TableCell sx={{ py: 1.5, fontFamily: 'monospace', fontSize: '0.85rem' }}>{tenant.id}</TableCell>
                   <TableCell>
-                    <Chip label={tenant.member_level?.toUpperCase()} size="small" color="primary" sx={{ fontWeight: 'bold' }} />
+                    <Chip label={tenant.member_level?.toUpperCase() || 'FREE'} size="small" color="primary" sx={{ fontWeight: 'bold' }} />
                   </TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>{tenant.token_used} Pesan</TableCell>
                   <TableCell>
@@ -198,7 +202,7 @@ export const AdminDashboard: React.FC = () => {
                       sx={{ fontWeight: 'bold' }} 
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell align="center">
                     <Button
                       variant="outlined"
                       size="small"
@@ -227,7 +231,7 @@ export const AdminDashboard: React.FC = () => {
                 <TableCell sx={{ fontWeight: 'bold' }}>Kategori / Subjek</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Isi Pesan Kendala</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Tindakan Admin</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 'bold' }}>Tindakan Admin</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -254,8 +258,8 @@ export const AdminDashboard: React.FC = () => {
                         sx={{ fontWeight: 'bold' }} 
                       />
                     </TableCell>
-                    <TableCell>
-                      <Box display="flex" gap={1}>
+                    <TableCell align="center">
+                      <Box display="flex" gap={1} justifyContent="center">
                         {ticket.status === 'Terbuka' && (
                           <Button 
                             variant="contained" 
