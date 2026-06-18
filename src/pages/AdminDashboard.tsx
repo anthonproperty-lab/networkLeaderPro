@@ -133,7 +133,7 @@ export const AdminDashboard: React.FC = () => {
       {/* Widget Ringkasan */}
       <Grid container spacing={3} mb={4}>
         <Grid item xs={12} sm={6} md={4}>
-          <Card sx={{ p: 2.5, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyBetween: 'space-between' }}>
+          <Card sx={{ p: 2.5, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Box>
               <Typography variant="subtitle2" color="text.secondary">Total Tenant Terdaftar</Typography>
               <Typography variant="h4" sx={{ fontWeight: 'bold', mt: 0.5 }}>{tenants.length}</Typography>
@@ -179,7 +179,7 @@ export const AdminDashboard: React.FC = () => {
                 <TableCell sx={{ fontWeight: 'bold' }}>Level Paket</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Token Digunakan</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Status Akses</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', textCenter: 'center' }}>Aksi Kendali</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 'bold' }}>Aksi Kendali</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
