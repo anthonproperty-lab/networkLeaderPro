@@ -31,7 +31,7 @@ interface SupportTicket {
 // Anda bisa menambah atau menghapus email staf admin langsung dari array ini
 const ADMIN_LIST = [
   "anthonproperty@gmail.com",    // Owner Utama (Super Admin)
-  "admin_forwardcrm@gmail.com",  // Staf Admin 1
+  "afisq5@gmail.com",  // Staf Admin 1
 ];
 
 export const AdminDashboard: React.FC = () => {
