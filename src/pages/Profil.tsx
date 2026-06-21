@@ -55,7 +55,7 @@ useEffect(() => {
     }
   };
   getProfileData();
-}, [user]);
+}, [user, paket]);
 
   const simpanProfil = async () => {
     if (!nama.trim()) return toast.error('Nama tidak boleh dikosongkan');
