@@ -13,49 +13,83 @@ export const Profil: React.FC = () => {
   // 1. Tambahkan state baru untuk menyimpan batas token di bagian atas komponen
 const [maxToken, setMaxToken] = useState<number>(0);
 
-// 2. Fungsi pengambilan data di useEffect yang sudah disinkronkan dengan skema database asli
+// 2. Fungsi pengambilan data dengan Fitur Realtime agar sinkron instan dengan Admin Panel
 useEffect(() => {
-  const getProfileData = async () => {
-    if (user) {
-      try {
-        // Langkah 1: Ambil data utama dari tabel 'profiles'
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('nama, member_level')
-          .eq('id', user.id)
-          .single();
-        
-        if (profileError) throw profileError;
+  if (!user) return;
 
-        if (profileData) {
-          // Sinkronisasi Nama Pengguna asli dari database
-          setNama(profileData.nama || '');
-          
-          // Sinkronisasi Level Paket (menggunakan huruf kecil sesuai isi database admin)
-          const levelAktif = profileData.member_level || 'free';
-          setPaket(levelAktif);
+  // Fungsi internal untuk menarik kuota token berdasarkan level paket
+  const fetchTokenLimit = async (level: string) => {
+    const { data: packageData, error: packageError } = await supabase
+      .from('subscription_packages')
+      .select('max_token')
+      .eq('level', level)
+      .maybeSingle();
 
-          // Langkah 2: Ambil max_token dari 'subscription_packages' berdasarkan level aktif
-          const { data: packageData, error: packageError } = await supabase
-            .from('subscription_packages')
-            .select('max_token')
-            .eq('level', levelAktif)
-            .maybeSingle();
-
-          if (!packageError && packageData) {
-            setMaxToken(packageData.max_token);
-          } else {
-            // Pengaman (Fallback) jika baris paket di database belum dibuat/tidak cocok
-            setMaxToken(levelAktif === 'free' ? 50 : 10000);
-          }
-        }
-      } catch (err: any) {
-        console.error("Gagal memuat data profil & paket:", err.message);
-      }
+    if (!packageError && packageData) {
+      setMaxToken(packageData.max_token);
+    } else {
+      // Fallback cadangan sesuai tabel database Anda
+      if (level === 'free') setMaxToken(50);
+      else if (level === 'standard') setMaxToken(2000);
+      else if (level === 'vip') setMaxToken(10000);
     }
   };
-  getProfileData();
-}, [user, paket]);
+
+  // Fungsi untuk mengambil data profil awal
+  const getInitialProfileData = async () => {
+    try {
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('nama, member_level')
+        .eq('id', user.id)
+        .single();
+      
+      if (profileError) throw profileError;
+
+      if (profileData) {
+        setNama(profileData.nama || '');
+        const levelAktif = profileData.member_level || 'free';
+        setPaket(levelAktif);
+        await fetchTokenLimit(levelAktif);
+      }
+    } catch (err: any) {
+      console.error("Gagal memuat data profil awal:", err.message);
+    }
+  };
+
+  getInitialProfileData();
+
+  // 🛠️ AKTIFKAN REALTIME LISTENERS: Mendengarkan perubahan dari Admin Panel secara instan
+  const profileSubscription = supabase
+    .channel(`realtime-profile-${user.id}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'profiles',
+        filter: `id=eq.${user.id}`
+      },
+      (payload) => {
+        const dataBaru = payload.new;
+        if (dataBaru) {
+          if (dataBaru.nama) setNama(dataBaru.nama);
+          
+          const levelBaru = dataBaru.member_level || 'free';
+          setPaket(levelBaru);
+          
+          // Tarik kuota token yang baru secara otomatis dari tabel subscription_packages
+          fetchTokenLimit(levelBaru);
+        }
+      }
+    )
+    .subscribe();
+
+  // Bersihkan fungsi subskripsi saat komponen tidak lagi digunakan
+  return () => {
+    supabase.removeChannel(profileSubscription);
+  };
+}, [user]);
 
   const simpanProfil = async () => {
     if (!nama.trim()) return toast.error('Nama tidak boleh dikosongkan');
