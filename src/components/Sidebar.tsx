@@ -47,62 +47,81 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, drawerWid
     });
   }
 
-  const drawerContent = (
-    <Box sx={{ overflow: 'auto' }}>
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1.5,
-          px: 3,
-          py: 2.5,
-          mt: { md: 8, xs: 0 },
-          cursor: 'pointer'
-        }}
-        onClick={() => navigate('/dashboard')}
+ const drawerContent = (
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      {/* 🛠️ SINKRONISASI DESKTOP: Jarak kosong setinggi Header/Topbar agar logo tidak tertutup di komputer */}
+      <Box sx={{ display: { xs: 'none', md: 'block' }, minHeight: 64 }} />
+
+      {/* 1. Bagian Logo & Judul (Aman di HP & Komputer, Tidak Akan Terpotong) */}
+      <Box 
+        sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 1.5, 
+          px: 3, 
+          py: 2, 
+          cursor: 'pointer',
+          borderBottom: '1px solid',
+          borderColor: 'divider'
+        }} 
+        onClick={() => {
+          navigate('/dashboard');
+          onClose();
+        }} 
       >
-        <Box
-          component="img"
-          src="/logo.png"
-          alt="Logo Aplikasi"
-          sx={{ height: 40, width: 'auto', objectFit: 'contain',
-    bgcolor: 'white', p: 0.5, borderRadius: '8px' }}
-          onError={() => {
-            console.error('Logo gagal dimuat, periksa lokasi file!');
-          }}
+        <Box 
+          component="img" 
+          src="/logo.png" 
+          alt="Logo Aplikasi" 
+          sx={{ 
+            height: 38,             // Tinggi logo yang pas dan proporsional
+            width: 'auto', 
+            objectFit: 'contain',
+            bgcolor: 'white',        
+            p: 0.5,                 
+            borderRadius: '8px',
+            boxShadow: '0px 1px 3px rgba(0,0,0,0.1)' // Memberi sedikit bayangan agar elegan
+          }} 
+          onError={() => { console.error('Logo gagal dimuat, periksa lokasi file!'); }} 
         />
-        <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#0984e3' }}>
+        <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#0984e3', fontSize: '1.05rem' }}>
           Forward CRM
         </Typography>
       </Box>
 
-      <List>
-        {menuItems.map((item) => {
-          const active = location.pathname.startsWith(item.path);
-          return (
-            <ListItemButton 
-              key={item.text} 
-              onClick={() => { navigate(item.path); onClose(); }} 
-              sx={{ 
-                mx: 1.5, 
-                my: 0.5, 
-                borderRadius: 2, 
-                bgcolor: active ? 'rgba(9, 132, 227, 0.15)' : 'transparent', 
-                color: active ? '#0984e3' : 'inherit', 
-                '&:hover': { bgcolor: 'rgba(9, 132, 227, 0.08)' } 
-              }}
-            >
-              <ListItemIcon sx={{ color: active ? '#0984e3' : 'inherit', minWidth: 40 }}>
-                {item.icon}
-              </ListItemIcon>
-              <ListItemText 
-                primary={item.text} 
-                primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: active ? 600 : 500 }} 
-              />
-            </ListItemButton>
-          );
-        })}
-      </List>
+      {/* 2. Daftar Menu dengan scroll mandiri jika menu terlalu panjang */}
+      <Box sx={{ flexGrow: 1, overflowY: 'auto', pt: 1 }}>
+        <List>
+          {menuItems.map((item) => {
+            const active = location.pathname.startsWith(item.path);
+            return (
+              <ListItemButton
+                key={item.text}
+                onClick={() => {
+                  navigate(item.path);
+                  onClose();
+                }}
+                sx={{
+                  mx: 1.5,
+                  my: 0.5,
+                  borderRadius: 2,
+                  bgcolor: active ? 'rgba(9, 132, 227, 0.15)' : 'transparent',
+                  color: active ? '#0984e3' : 'inherit',
+                  '&:hover': { bgcolor: 'rgba(9, 132, 227, 0.08)' }
+                }}
+              >
+                <ListItemIcon sx={{ color: active ? '#0984e3' : 'inherit', minWidth: 40 }}>
+                  {item.icon}
+                </ListItemIcon>
+                <ListItemText 
+                  primary={item.text} 
+                  primaryTypographyProps={{ fontSize: '0.85rem', fontWeight: active ? 600 : 500 }} 
+                />
+              </ListItemButton>
+            );
+          })}
+        </List>
+      </Box>
     </Box>
   );
 
