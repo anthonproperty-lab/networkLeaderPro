@@ -18,13 +18,13 @@ useEffect(() => {
   const getProfileData = async () => {
     if (user) {
       try {
-        // Melakukan JOIN ke tabel subscription_packages berdasarkan relasi level
+        // 🛠️ PERBAIKAN: Menambahkan relasi eksplisit antara member_level dan tabel subscription_packages
         const { data, error } = await supabase
           .from('profiles')
           .select(`
             nama,
             member_level,
-            subscription_packages (
+            subscription_packages!member_level (
               max_token
             )
           `)
@@ -36,17 +36,21 @@ useEffect(() => {
         if (data) {
           setNama(data.nama);
           
-          // Set level paket (default 'free' jika kosong)
           const level = data.member_level || 'free';
           setPaket(level);
           
-          // Ambil data max_token dari hasil join tabel
-          // @ts-ignore
-          const tokenLimit = data.subscription_packages?.max_token || 0;
-          setMaxToken(tokenLimit);
+          // 🛠️ PERBAIKAN: Membaca data array/object bersarang dari Supabase secara aman
+          const targetPaket = data.subscription_packages;
+          const tokenLimit = Array.isArray(targetPaket) 
+            ? targetPaket[0]?.max_token 
+            : (targetPaket as any)?.max_token;
+
+          setMaxToken(tokenLimit || 10000); // Default ke 10000 jika data gagal termuat
         }
       } catch (err: any) {
         console.error("Gagal memuat data profil & paket:", err.message);
+        // Fallback jika terjadi error jaringan agar tidak tampil 0
+        setMaxToken(10000); 
       }
     }
   };
