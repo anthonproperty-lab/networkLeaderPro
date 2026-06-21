@@ -11,6 +11,7 @@ import { toast } from 'react-toastify';
 
 interface UserProfile {
   id: string;
+  nama: string;
   member_level: string;
   token_used: number;
   is_blocked: boolean;
@@ -197,66 +198,61 @@ export const AdminDashboard: React.FC = () => {
         </Tabs>
       </Box>
 
-      {/* TAB 0: MANAJEMEN TENANT & PAKET */}
-      {activeTab === 0 && (
-        <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: '12px' }}>
-          <Table size="small">
-            <TableHead sx={{ bgcolor: 'action.hover' }}>
-              <TableRow>
-                <TableCell sx={{ fontWeight: 'bold', py: 1.5 }}>User ID Tenant</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Level Paket (Ubah)</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Token Digunakan</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Status Akses</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Aksi Kendali</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {tenants.map((tenant) => (
-                <TableRow key={tenant.id}>
-                  <TableCell sx={{ py: 1.5, fontFamily: 'monospace', fontSize: '0.85rem' }}>{tenant.id}</TableCell>
-                  
-                  {/* 🛠️ Dropdown Pengubah Paket */}
-                  <TableCell>
-                    <FormControl size="small" variant="standard" sx={{ minWidth: 100 }}>
-                      <Select 
-  value={tenant.member_level?.toLowerCase() || 'free'} 
-  onChange={(e) => handleUpdateLevelPaket(tenant.id, e.target.value)} 
-  sx={{ fontSize: '0.85rem', fontWeight: 'bold' }}
->
-  <MenuItem value="free">FREE</MenuItem>
-  <MenuItem value="standard">STANDARD</MenuItem>
-  <MenuItem value="vip">VIP</MenuItem>
-</Select>
-                    </FormControl>
-                  </TableCell>
+     {/* TAB 0: MANAJEMEN TENANT & PAKET */}
+{activeTab === 0 && (
+  <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: '12px' }}>
+    <Table size="small">
+      <TableHead sx={{ bgcolor: 'action.hover' }}>
+        <TableRow>
+          <TableCell sx={{ fontWeight: 'bold', py: 1.5 }}>User ID Tenant</TableCell>
+          <TableCell sx={{ fontWeight: 'bold' }}>Nama Tenant</TableCell> {/* 🛠️ TAMBAHKAN HEADER INI */}
+          <TableCell sx={{ fontWeight: 'bold' }}>Level Paket (Ubah)</TableCell>
+          <TableCell sx={{ fontWeight: 'bold' }}>Token Digunakan</TableCell>
+          <TableCell sx={{ fontWeight: 'bold' }}>Status Akses</TableCell>
+          <TableCell sx={{ fontWeight: 'bold' }}>Aksi Kendali</TableCell>
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {tenants.map((tenant) => (
+          <TableRow key={tenant.id}>
+            <TableCell sx={{ py: 1.5, fontFamily: 'monospace', fontSize: '0.85rem' }}>
+              {tenant.id}
+            </TableCell>
+            
+            {/* 🛠️ TAMBAHKAN CELL BARU INI UNTUK MENAMPILKAN NAMA */}
+            <TableCell sx={{ fontWeight: 500 }}>
+              {tenant.nama || 'Tanpa Nama'}
+            </TableCell>
 
-                  <TableCell sx={{ fontWeight: 'bold' }}>{tenant.token_used} Pesan</TableCell>
-                  <TableCell>
-                    <Chip 
-                      label={tenant.is_blocked ? "DIBLOKIR" : "AKTIF"} 
-                      size="small" 
-                      color={tenant.is_blocked ? "error" : "success"} 
-                      sx={{ fontWeight: 'bold' }} 
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      color={tenant.is_blocked ? "success" : "error"}
-                      startIcon={tenant.is_blocked ? <CheckCircle /> : <Block />}
-                      onClick={() => handleToggleBlokir(tenant.id, tenant.is_blocked)}
-                      sx={{ fontWeight: 'bold', borderRadius: '6px' }}
-                    >
-                      {tenant.is_blocked ? "Buka" : "Blokir"}
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
+            {/* Dropdown Pengubah Paket */}
+            <TableCell>
+              <FormControl size="small" variant="standard" sx={{ minWidth: 100 }}>
+                <Select 
+                  value={tenant.member_level?.toLowerCase() || 'free'} 
+                  onChange={(e) => handleUpdateLevelPaket(tenant.id, e.target.value)} 
+                  sx={{ fontSize: '0.85rem', fontWeight: 'bold' }} 
+                >
+                  <MenuItem value="free">FREE</MenuItem>
+                  <MenuItem value="standard">STANDARD</MenuItem>
+                  <MenuItem value="vip">VIP</MenuItem>
+                </Select>
+              </FormControl>
+            </TableCell>
+            <TableCell sx={{ fontWeight: 'bold' }}>{tenant.token_used} Pesan</TableCell>
+            <TableCell>
+              <Chip label={tenant.is_blocked ? "DIBLOKIR" : "AKTIF"} size="small" color={tenant.is_blocked ? "error" : "success"} sx={{ fontWeight: 'bold' }} />
+            </TableCell>
+            <TableCell>
+              <Button variant="outlined" size="small" color={tenant.is_blocked ? "success" : "error"} startIcon={tenant.is_blocked ? <CheckCircle /> : <Block />} onClick={() => handleToggleBlokir(tenant.id, tenant.is_blocked)} sx={{ fontWeight: 'bold', borderRadius: '6px' }} >
+                {tenant.is_blocked ? "Buka" : "Blokir"}
+              </Button>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  </TableContainer>
+)}
 
       {/* TAB 1: MANAJEMEN TIKET BANTUAN */}
       {activeTab === 1 && (
