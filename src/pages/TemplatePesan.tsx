@@ -77,19 +77,16 @@ const handleGenerateAI = async () => {
   }
   setAiLoading(true);
   try {
-    // 1. Ambil API Key secara aman dari vault Supabase Anda melalui SQL Function bawaan
-    const { data: secretData, error: secretError } = await supabase
+    // 1. Ambil API Key secara aman dari vault Supabase Anda melalui SQL RPC
+    const { data: apiKey, error: secretError } = await supabase
       .rpc('get_secret', { secret_name: 'GEMINI_API_KEY' });
 
-    // Jika rpc get_secret belum dibuat di Supabase, kita gunakan fallback mengambil langsung dari env Vercel
-    const apiKey = secretData || import.meta.env.VITE_GEMINI_API_KEY;
-
-    if (!apiKey) {
-      toast.error('API Key Gemini belum dikonfigurasi di Supabase Vault atau Environment');
+    if (secretError || !apiKey) {
+      toast.error('Gagal mengambil API Key dari Supabase Vault. Pastikan fungsi SQL get_secret sudah dibuat.');
       return;
     }
 
-    // 2. Langsung panggil API Gemini gratis dari sisi frontend
+    // 2. Langsung panggil API Gemini 1.5 Flash dari sisi frontend
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
       {
@@ -108,6 +105,11 @@ const handleGenerateAI = async () => {
     );
 
     const data = await response.json();
+    
+    if (data.error) {
+      throw new Error(data.error.message || 'API Gemini mengembalikan error');
+    }
+
     const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (generatedText) {
@@ -115,11 +117,11 @@ const handleGenerateAI = async () => {
       setValue('isi_pesan', generatedText.trim());
       toast.success('Pesan berhasil dibuat oleh Gemini AI!');
     } else {
-      throw new Error('Format balasan AI tidak sesuai');
+      throw new Error('Format balasan AI tidak sesuai atau diblokir sistem');
     }
 
   } catch (err: any) {
-    toast.error('Gagal memproses AI, pastikan kuota API Key gratis Anda masih tersedia');
+    toast.error(`Gagal memproses AI: ${err.message || err}`);
     console.error(err);
   } finally {
     setAiLoading(false);
