@@ -72,7 +72,8 @@ useEffect(() => {
             <TextField fullWidth label="ID Tenant (Multi-Tenant ID)" disabled value={user?.id || ''} margin="normal" />
             <TextField fullWidth label="Alamat Email Akun" disabled value={user?.email || ''} margin="normal" />
             <TextField fullWidth label="Nama Pengguna/Perusahaan" value={nama} onChange={(e) => setNama(e.target.value)} margin="normal" />
-            <TextField fullWidth label="Paket Berlangganan CRM" disabled value={`${paket} Active`} margin="normal" />
+            <TextField fullWidth label="Paket Berlangganan CRM" disabled value={`${paket.toUpperCase()} PACKAGE`} margin="normal" />
+            <TextField fullWidth label="Batas Maksimal Kuota Token AI" disabled value={`${maxToken.toLocaleString('id-ID')} Token`} margin="normal" />
           </Box>
           <Button variant="contained" fullWidth disabled={loading} onClick={simpanProfil}>{loading ? 'Memproses...' : 'Simpan Pembaruan Profil'}</Button>
         </CardContent>
