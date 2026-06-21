@@ -77,20 +77,50 @@ const handleGenerateAI = async () => {
   }
   setAiLoading(true);
   try {
-    // Memanggil Edge Function Supabase yang memproses Gemini API gratis
-    const { data, error } = await supabase.functions.invoke('gemini-ai', {
-      body: { 
-        prompt: aiPrompt, 
-        kategori: kategoriTerpilih 
-      },
-    });
+    // 1. Ambil API Key secara aman dari vault Supabase Anda melalui SQL Function bawaan
+    const { data: secretData, error: secretError } = await supabase
+      .rpc('get_secret', { secret_name: 'GEMINI_API_KEY' });
 
-    if (error) throw error;
+    // Jika rpc get_secret belum dibuat di Supabase, kita gunakan fallback mengambil langsung dari env Vercel
+    const apiKey = secretData || import.meta.env.VITE_GEMINI_API_KEY;
 
-    setValue('isi_pesan', data.text);
-    toast.success('Pesan berhasil dibuat oleh AI!');
+    if (!apiKey) {
+      toast.error('API Key Gemini belum dikonfigurasi di Supabase Vault atau Environment');
+      return;
+    }
+
+    // 2. Langsung panggil API Gemini gratis dari sisi frontend
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `Anda adalah ahli copywriter WhatsApp. Buat teks pesan WhatsApp untuk kategori "${kategoriTerpilih}" berdasarkan instruksi berikut: "${aiPrompt}". Tuliskan langsung isi pesannya tanpa teks pembuka (seperti "Tentu, ini pesannya:") dan tanpa tanda kutip di awal/akhir.`
+            }]
+          }]
+        })
+      }
+    );
+
+    const data = await response.json();
+    const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (generatedText) {
+      // 3. Set hasilnya ke input form isi pesan
+      setValue('isi_pesan', generatedText.trim());
+      toast.success('Pesan berhasil dibuat oleh Gemini AI!');
+    } else {
+      throw new Error('Format balasan AI tidak sesuai');
+    }
+
   } catch (err: any) {
-    toast.error('Gagal memproses AI');
+    toast.error('Gagal memproses AI, pastikan kuota API Key gratis Anda masih tersedia');
+    console.error(err);
   } finally {
     setAiLoading(false);
   }
