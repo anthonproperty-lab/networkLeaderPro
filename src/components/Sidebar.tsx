@@ -67,7 +67,7 @@ const drawerContent = (
           src="/logo.png" 
           alt="Logo Aplikasi" 
           sx={{ 
-            height: 38,             // Tinggi logo yang pas dan proporsional
+            height: 70,             // Tinggi logo yang pas dan proporsional
             width: 'auto', 
             objectFit: 'contain',
             bgcolor: 'white',        
