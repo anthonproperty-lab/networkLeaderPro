@@ -70,41 +70,31 @@ export const Templates: React.FC = () => {
   };
 
   // ✨ KONTROLLER AI GENERATOR (Langsung / Tidak Langsung via Model Bahasa)
-  const handleGenerateAI = async () => {
-    if (!aiPrompt.trim()) {
-      toast.warn('Masukkan instruksi/prompt AI terlebih dahulu');
-      return;
-    }
+const handleGenerateAI = async () => {
+  if (!aiPrompt.trim()) {
+    toast.warn('Masukkan instruksi/prompt AI terlebih dahulu');
+    return;
+  }
+  setAiLoading(true);
+  try {
+    // Memanggil Edge Function Supabase yang memproses Gemini API gratis
+    const { data, error } = await supabase.functions.invoke('gemini-ai', {
+      body: { 
+        prompt: aiPrompt, 
+        kategori: kategoriTerpilih 
+      },
+    });
 
-    setAiLoading(true);
-    try {
-      // 💡 Opsi A: Jika Anda punya API / Edge AI bawaan browser (window.ai)
-      // const model = await (window as any).ai.createTextSession();
-      // const result = await model.prompt(`Buat teks pesan WhatsApp ${kategoriTerpilih} berdasarkan instruksi ini: ${aiPrompt}`);
-      
-      // 💡 Opsi B: Aturan Simulasi Pintar Generatif Lokal (Sangat cepat & andal untuk template SaaS)
-      await new Promise((resolve) => setTimeout(resolve, 1500)); // Simulasi delay loading AI
-      
-      let generatedText = '';
-      if (kategoriTerpilih === 'Promosi') {
-        generatedText = `🔥 PROMO SPESIAL: ${aiPrompt} 🔥\n\nHalo Kak! Ada kabar gembira nih khusus hari ini. Dapatkan penawaran terbaik dari kami.\n\n📌 *Kenapa Harus Ambil Sekarang?*\n✅ Produk Berkualitas Tinggi\n✅ Slot Sangat Terbatas!\n\nKlik balas pesan ini untuk klaim kupon diskon Anda sekarang juga ya! 🚀`;
-      } else if (kategoriTerpilih === 'Follow Up') {
-        generatedText = `Halo Kak, menginfokan kembali terkait data: ${aiPrompt} 😊\n\nApakah ada yang bisa kami bantu atau ada kendala dalam proses pendaftarannya? Jangan ragu untuk mengontak kami kembali ya Kak.\n\nSalam Hangat!`;
-      } else if (kategoriTerpilih === 'Edukasi') {
-        generatedText = `💡 [INFO EDUKASI] 💡\n\nTahukah Anda? Terkait ${aiPrompt} ternyata sangat penting untuk kelancaran bisnis kita lho.\n\nYuk simak tips lengkapnya di berkas atau link yang kami sediakan. Semoga bermanfaat ya Kak!`;
-      } else {
-        generatedText = `Halo Kak! Selamat datang di layanan kami 👋\n\nTerima kasih telah menghubungi kami mengenai ${aiPrompt}. Admin kami akan segera melayani Anda dalam beberapa saat. Mohon ditunggu ya!`;
-      }
+    if (error) throw error;
 
-      setValue('isi_pesan', generatedText);
-      toast.success('Pesan berhasil dibuat oleh AI!');
-    } catch (err: any) {
-      toast.error('Gagal memproses AI');
-    } finally {
-      setAiLoading(false);
-    }
-  };
-
+    setValue('isi_pesan', data.text);
+    toast.success('Pesan berhasil dibuat oleh AI!');
+  } catch (err: any) {
+    toast.error('Gagal memproses AI');
+  } finally {
+    setAiLoading(false);
+  }
+};
   // 3. Simpan atau Perbarui Data ke Supabase
   const handleSimpanTemplate = async (data: TemplateFormInput) => {
     setLoading(true);
