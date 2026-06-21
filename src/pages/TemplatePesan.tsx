@@ -79,7 +79,7 @@ const handleGenerateAI = async () => {
   try {
     // 1. Ambil API Key secara aman dari vault Supabase Anda melalui SQL RPC
     const { data: apiKey, error: secretError } = await supabase
-      .rpc('get_secret', { secret_name: 'GEMINI_API_KEY' });
+      .rpc('get_secret', { secret_name: 'Gemini API Key' });
 
     if (secretError || !apiKey) {
       toast.error('Gagal mengambil API Key dari Supabase Vault. Pastikan fungsi SQL get_secret sudah dibuat.');
