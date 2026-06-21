@@ -14,29 +14,19 @@ export const TagsManagement: React.FC = () => {
   const [newTagName, setNewTagName] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
 
-  // 1. Ambil daftar tag milik user yang sedang aktif
+  // 1. Ambil Data Label dari Supabase
   const fetchTags = async () => {
     if (!user) return;
     try {
       const { data, error } = await supabase
         .from('tags')
-        .select('*')
+        .select('id, nama_tag, created_at')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        // Fallback jika skema database Anda menggunakan 'nama_tag' dan bukan 'name'
-        const { data: dataAlt, error: errAlt } = await supabase
-          .from('tags')
-          .select('id, nama_tag, created_at')
-          .order('created_at', { ascending: false });
-        
-        if (!errAlt) {
-          setTags(dataAlt?.map(t => ({ id: t.id, name: t.nama_tag })) || []);
-          return;
-        }
-        throw error;
-      }
-      setTags(data || []);
+      if (error) throw error;
+
+      // Map nama_tag ke properti 'name' jika state lokal komponen Anda menggunakannya
+      setTags(data?.map(t => ({ id: t.id, name: t.nama_tag })) || []);
     } catch (err: any) {
       toast.error(`Gagal memuat label: ${err.message}`);
     }
@@ -46,27 +36,23 @@ export const TagsManagement: React.FC = () => {
     fetchTags();
   }, [user]);
 
-  // 2. Tambah Label Baru
+  // 2. Tambah Label Baru (Langsung Menggunakan nama_tag)
   const handleAddTag = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTagName.trim()) return;
 
     setLoading(true);
     try {
-      // Cek dulu apakah nama kolom Anda di Supabase 'name' atau 'nama_tag'
-      // Kita coba masukkan dengan struktur default 'name' terlebih dahulu
       const { error } = await supabase
         .from('tags')
-        .insert([{ user_id: user?.id, name: newTagName.trim() }]);
+        .insert([
+          { 
+            user_id: user?.id, 
+            nama_tag: newTagName.trim() 
+          }
+        ]);
 
-      if (error) {
-        // Jika error, kemungkinan nama kolom di DB adalah 'nama_tag'
-        const { error: errAlt } = await supabase
-          .from('tags')
-          .insert([{ user_id: user?.id, nama_tag: newTagName.trim() }]);
-        
-        if (errAlt) throw errAlt;
-      }
+      if (error) throw error;
 
       toast.success('Label baru berhasil ditambahkan!');
       setNewTagName('');
