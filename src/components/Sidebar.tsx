@@ -56,6 +56,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, drawerWid
           gap: 1.5,
           px: 3,
           py: 2.5,
+          mt: { md: 8, xs: 0 },
           cursor: 'pointer'
         }}
         onClick={() => navigate('/dashboard')}
