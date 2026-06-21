@@ -65,7 +65,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, drawerWid
           component="img"
           src="/logo.png"
           alt="Logo Aplikasi"
-          sx={{ height: 40, width: 'auto', objectFit: 'contain' }}
+          sx={{ height: 40, width: 'auto', objectFit: 'contain',
+    bgcolor: 'white', p: 0.5, borderRadius: '8px' }}
           onError={() => {
             console.error('Logo gagal dimuat, periksa lokasi file!');
           }}
