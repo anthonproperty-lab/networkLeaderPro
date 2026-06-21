@@ -18,47 +18,36 @@ useEffect(() => {
   const getProfileData = async () => {
     if (user) {
       try {
-        // Mengambil data profile dengan relasi tabel paket secara aman
-        const { data, error } = await supabase
+        // 1. Ambil data profil terlebih dahulu (Sangat Aman untuk Nama)
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .select(`
-            nama,
-            member_level,
-            subscription_packages (
-              max_token
-            )
-          `)
+          .select('nama, member_level')
           .eq('id', user.id)
           .single();
         
-        if (error) throw error;
+        if (profileError) throw profileError;
 
-        if (data) {
-          // 🛠️ PERBAIKAN 1: Pastikan nama dibaca dengan benar, beri fallback jika kosong di DB
-          setNama(data.nama || 'Pengguna');
-          
-          // 🛠️ PERBAIKAN 2: Simpan langsung string level paketnya
-          const level = data.member_level || 'free';
+        if (profileData) {
+          setNama(profileData.nama || '');
+          const level = profileData.member_level || 'free';
           setPaket(level);
-          
-          // 🛠️ PERBAIKAN 3: Ekstraksi nested object dari Supabase tanpa merusak compiler TS
-          const targetPaket = data.subscription_packages as any;
-          let tokenLimit = 10000; // default fallback
 
-          if (targetPaket) {
-            tokenLimit = Array.isArray(targetPaket) 
-              ? (targetPaket[0]?.max_token || 10000)
-              : (targetPaket?.max_token || 10000);
+          // 2. Ambil data kuota token dari tabel paket secara terpisah (Mencegah salah join)
+          const { data: packageData } = await supabase
+            .from('subscription_packages')
+            .select('max_token')
+            .eq('level', level) // Sesuaikan jika nama kolom di Supabase bukan 'level'
+            .maybeSingle();
+
+          if (packageData) {
+            setMaxToken(packageData.max_token);
+          } else {
+            // Hardcode fallback sementara berdasarkan logika Anda
+            setMaxToken(level === 'free' ? 50 : 10000);
           }
-
-          setMaxToken(tokenLimit);
         }
       } catch (err: any) {
-        console.error("Gagal memuat data profil & paket:", err.message);
-        // Tetap pasang fallback agar UI tidak rusak/kosong jika query gagal
-        setNama('Pengguna');
-        setPaket('free');
-        setMaxToken(10000); 
+        console.error("Gagal memuat data profil:", err.message);
       }
     }
   };
