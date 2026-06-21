@@ -55,18 +55,17 @@ const drawerContent = (
   sx={{
     display: 'flex',
     justifyContent: 'center',
-    alignItems: 'center',
     py: 2
   }}
 >
   <Box
     component="img"
     src="/logo.png"
-    alt="Logo Aplikasi"
+    alt="Network Leader Pro"
     sx={{
-      maxHeight: 80,
-      maxWidth: 180,
-      objectFit: 'contain'
+      width: 220,
+      maxWidth: '90%',
+      height: 'auto'
     }}
   />
 </Box>
