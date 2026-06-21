@@ -10,15 +10,48 @@ export const Profil: React.FC = () => {
   const [paket, setPaket] = useState('');
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const getProfileData = async () => {
-      if (user) {
-        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-        if (data) { setNama(data.nama); setPaket(data.paket); }
+  // 1. Tambahkan state baru untuk menyimpan batas token di bagian atas komponen
+const [maxToken, setMaxToken] = useState<number>(0);
+
+// 2. Ubah fungsi pengambilan data di useEffect
+useEffect(() => {
+  const getProfileData = async () => {
+    if (user) {
+      try {
+        // Melakukan JOIN ke tabel subscription_packages berdasarkan relasi level
+        const { data, error } = await supabase
+          .from('profiles')
+          .select(`
+            nama,
+            member_level,
+            subscription_packages (
+              max_token
+            )
+          `)
+          .eq('id', user.id)
+          .single();
+        
+        if (error) throw error;
+
+        if (data) {
+          setNama(data.nama);
+          
+          // Set level paket (default 'free' jika kosong)
+          const level = data.member_level || 'free';
+          setPaket(level);
+          
+          // Ambil data max_token dari hasil join tabel
+          // @ts-ignore
+          const tokenLimit = data.subscription_packages?.max_token || 0;
+          setMaxToken(tokenLimit);
+        }
+      } catch (err: any) {
+        console.error("Gagal memuat data profil & paket:", err.message);
       }
-    };
-    getProfileData();
-  }, [user]);
+    }
+  };
+  getProfileData();
+}, [user]);
 
   const simpanProfil = async () => {
     if (!nama.trim()) return toast.error('Nama tidak boleh dikosongkan');
