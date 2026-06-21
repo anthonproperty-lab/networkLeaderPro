@@ -52,35 +52,24 @@ const drawerContent = (
     <Toolbar />
 
     <Box
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 1.5,
-        px: 3,
-        py: 2.5,
-        cursor: 'pointer'
-      }}
-      onClick={() => navigate('/dashboard')}
-    >
-        <Box 
-          component="img" 
-          src="/logo.png" 
-          alt="Logo Aplikasi" 
-          sx={{ 
-            height: 70,             // Tinggi logo yang pas dan proporsional
-            width: 'auto', 
-            objectFit: 'contain',
-            bgcolor: 'white',        
-            p: 0.5,                 
-            borderRadius: '8px',
-            boxShadow: '0px 1px 3px rgba(0,0,0,0.1)' // Memberi sedikit bayangan agar elegan
-          }} 
-          onError={() => { console.error('Logo gagal dimuat, periksa lokasi file!'); }} 
-        />
-        <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#0984e3', fontSize: '1.05rem' }}>
-          Forward CRM
-        </Typography>
-      </Box>
+  sx={{
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    py: 2
+  }}
+>
+  <Box
+    component="img"
+    src="/logo.png"
+    alt="Logo Aplikasi"
+    sx={{
+      maxHeight: 80,
+      maxWidth: 180,
+      objectFit: 'contain'
+    }}
+  />
+</Box>
 
       {/* 2. Daftar Menu dengan scroll mandiri jika menu terlalu panjang */}
       <Box sx={{ flexGrow: 1, overflowY: 'auto', pt: 1 }}>
