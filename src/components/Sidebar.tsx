@@ -1,5 +1,5 @@
 import React from 'react';
-import { Drawer, List, ListItemButton, ListItemIcon, ListItemText, Box, Typography } from '@mui/material';
+import { Drawer, List, ListItemButton, ListItemIcon, ListItemText, Box, Typography, Toolbar } from '@mui/material';
 import { 
   Dashboard, People, Label, Schedule, Message, 
   Campaign, AccountCircle, Notifications, HelpCenter, SupervisorAccount
@@ -47,28 +47,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, drawerWid
     });
   }
 
- const drawerContent = (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* 🛠️ SINKRONISASI DESKTOP: Jarak kosong setinggi Header/Topbar agar logo tidak tertutup di komputer */}
-      <Box sx={{ display: { xs: 'none', md: 'block' }, minHeight: 64 }} />
+const drawerContent = (
+  <Box sx={{ overflow: 'auto' }}>
+    <Toolbar />
 
-      {/* 1. Bagian Logo & Judul (Aman di HP & Komputer, Tidak Akan Terpotong) */}
-      <Box 
-        sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: 1.5, 
-          px: 3, 
-          py: 2, 
-          cursor: 'pointer',
-          borderBottom: '1px solid',
-          borderColor: 'divider'
-        }} 
-        onClick={() => {
-          navigate('/dashboard');
-          onClose();
-        }} 
-      >
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 1.5,
+        px: 3,
+        py: 2.5,
+        cursor: 'pointer'
+      }}
+      onClick={() => navigate('/dashboard')}
+    >
         <Box 
           component="img" 
           src="/logo.png" 
