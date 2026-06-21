@@ -30,9 +30,13 @@ export const Dashboard: React.FC = () => {
       try {
         setLoading(true);
 
-        // 💡 PERBAIKAN 2: Gunakan Promise.all untuk mengambil data profil, paket, dan statistik secara paralel (Lebih Cepat!)
+        // 1. Ambil data profil tenant dan statistik secara paralel
         const [profilRes, statsRes] = await Promise.all([
-          supabase.from('profiles').select('member_level, token_used, is_blocked').eq('id', user.id).single(),
+          supabase
+            .from('profiles')
+            .select('member_level, token_used, is_blocked')
+            .eq('id', user.id)
+            .single(),
           Promise.all([
             supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
             supabase.from('followups').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('status', 'Belum Selesai'),
@@ -41,34 +45,42 @@ export const Dashboard: React.FC = () => {
           ])
         ]);
 
-        // Ambil data limit paket berdasarkan level member yang didapat
-        let maxTokenValue = 100;
+        if (profilRes.error) throw profilRes.error;
+
+        // 2. Ambil data limit paket berdasarkan level member (pastikan huruf kecil)
+        let maxTokenValue = 50; // Default terkecil untuk paket free
+        const levelAktif = profilRes.data?.member_level?.toLowerCase() || 'free';
+
         if (profilRes.data) {
-          const { data: paketRes } = await supabase
+          const { data: paketRes, error: paketError } = await supabase
             .from('subscription_packages')
             .select('max_token')
-            .eq('level', profilRes.data.member_level)
-            .single();
-          
-          if (paketRes) maxTokenValue = paketRes.max_token;
+            .eq('level', levelAktif)
+            .maybeSingle(); // Menggunakan maybeSingle agar lebih aman jika data kosong
+
+          if (!paketError && paketRes) {
+            maxTokenValue = paketRes.max_token;
+          } else {
+            // Fallback manual jika tabel subscription_packages belum merespon
+            if (levelAktif === 'standard') maxTokenValue = 2000;
+            if (levelAktif === 'vip') maxTokenValue = 10000;
+          }
         }
 
-        // Simpan data kuota ke state
-        if (profilRes.data) {
-          setQuotaData({
-            memberLevel: profilRes.data.member_level || 'FREE',
-            tokenUsed: profilRes.data.token_used || 0,
-            maxToken: maxTokenValue,
-            isBlocked: profilRes.data.is_blocked || false
-          });
-        }
+        // 3. Simpan data kuota ke state dengan aman
+        setQuotaData({
+          memberLevel: levelAktif,
+          tokenUsed: profilRes.data?.token_used || 0,
+          maxToken: maxTokenValue,
+          isBlocked: profilRes.data?.is_blocked || false
+        });
 
-        // Simpan data statistik ke state
+        // 4. Simpan data statistik ke state
         const [kontakCount, followupCount, kampanyeCount, notifCount] = statsRes;
         setStats({
           kontak: kontakCount.count || 0,
           followup: followupCount.count || 0,
-          kampanye: kampanyeCount.count || 0,
+          campaign: kampanyeCount.count || 0, // Sesuaikan properti dari 'kampanye' ke 'campaign' jika diperlukan
           notif: notifCount.count || 0,
         });
 
