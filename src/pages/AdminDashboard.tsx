@@ -218,15 +218,15 @@ export const AdminDashboard: React.FC = () => {
                   {/* 🛠️ Dropdown Pengubah Paket */}
                   <TableCell>
                     <FormControl size="small" variant="standard" sx={{ minWidth: 100 }}>
-                      <Select
-                        value={tenant.member_level?.toLowerCase() || 'free'}
-                        onChange={(e) => handleUpdateLevelPaket(tenant.id, e.target.value)}
-                        sx={{ fontSize: '0.85rem', fontWeight: 'bold' }}
-                      >
-                        <MenuItem value="free">FREE</MenuItem>
-                        <MenuItem value="basic">BASIC</MenuItem>
-                        <MenuItem value="premium">PREMIUM</MenuItem>
-                      </Select>
+                      <Select 
+  value={tenant.member_level?.toLowerCase() || 'free'} 
+  onChange={(e) => handleUpdateLevelPaket(tenant.id, e.target.value)} 
+  sx={{ fontSize: '0.85rem', fontWeight: 'bold' }}
+>
+  <MenuItem value="free">FREE</MenuItem>
+  <MenuItem value="standard">STANDARD</MenuItem>
+  <MenuItem value="vip">VIP</MenuItem>
+</Select>
                     </FormControl>
                   </TableCell>
 
