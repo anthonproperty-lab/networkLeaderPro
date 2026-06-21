@@ -87,23 +87,21 @@ const handleGenerateAI = async () => {
     }
 
     // 2. Langsung panggil API Gemini 1.5 Flash dari sisi frontend
-   const response = await fetch(
-  'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent',
-  {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-goog-api-key': String(apiKey).trim(),
-    },
-    body: JSON.stringify({
-      contents: [{
-        parts: [{
-          text: `Anda adalah ahli copywriter WhatsApp. Buat teks pesan WhatsApp untuk kategori "${kategoriTerpilih}" berdasarkan instruksi berikut: "${aiPrompt}".`
-        }]
-      }]
-    })
-  }
-);
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
+      {method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `Anda adalah ahli copywriter WhatsApp. Buat teks pesan WhatsApp untuk kategori "${kategoriTerpilih}" berdasarkan instruksi berikut: "${aiPrompt}". Tuliskan langsung isi pesannya tanpa teks pembuka (seperti "Tentu, ini pesannya:") dan tanpa tanda kutip di awal/akhir.`
+            }]
+          }]
+        })
+      }
+    );
 
     const data = await response.json();
     
