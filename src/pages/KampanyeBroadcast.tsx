@@ -73,30 +73,21 @@ export const KampanyeBroadcast: React.FC = () => {
         .eq('user_id', user.id) // 🔒 PERBAIKAN: Hanya mengambil riwayat milik user ini sendiri
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+    if (error) throw error;
       setBroadcasts(data || []);
 
-      // Ambil data tags/label untuk opsi dropdown
+      // 🛠️ PERBAIKAN: Langsung tembak kolom 'nama_tag' dan urutkan dengan benar
       const { data: dataGrup, error: errGrup } = await supabase
         .from('tags')
-        .select('id, name')
-        .eq('user_id', user.id) // 🔒 PERBAIKAN: Saring opsi tag berdasarkan user pemilik agar tidak campur aduk
-        .order('name', { ascending: true });
+        .select('id, nama_tag')
+        .eq('user_id', user.id)
+        .order('nama_tag', { ascending: true });
 
-      if (errGrup) {
-        const { data: dataAlt, error: errAlt } = await supabase
-          .from('tags')
-          .select('id, nama_tag') 
-          .eq('user_id', user.id)
-          .order('nama_tag', { ascending: true });
-        
-        if (!errAlt) {
-          setGroups(dataAlt?.map(t => ({ id: t.id, name: t.nama_tag })) || []);
-          return;
-        }
-        throw errGrup;
-      }
-      setGroups(dataGrup?.map(t => ({ id: t.id, name: t.name })) || []);
+      if (errGrup) throw errGrup;
+
+      // Map nama_tag ke properti 'name' agar select option di bawahnya tetap berfungsi normal
+      setGroups(dataGrup?.map(t => ({ id: t.id, name: t.nama_tag })) || []);
+
     } catch (err: any) {
       toast.error(`Gagal memuat data: ${err.message}`);
     } finally {
