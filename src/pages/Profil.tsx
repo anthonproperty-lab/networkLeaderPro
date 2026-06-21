@@ -13,12 +13,12 @@ export const Profil: React.FC = () => {
   // 1. Tambahkan state baru untuk menyimpan batas token di bagian atas komponen
 const [maxToken, setMaxToken] = useState<number>(0);
 
-// 2. Ubah fungsi pengambilan data di useEffect
+// 2. Fungsi pengambilan data di useEffect yang sudah disinkronkan dengan skema database asli
 useEffect(() => {
   const getProfileData = async () => {
     if (user) {
       try {
-        // 1. Ambil data profil terlebih dahulu (Sangat Aman untuk Nama)
+        // Langkah 1: Ambil data utama dari tabel 'profiles'
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('nama, member_level')
@@ -28,26 +28,29 @@ useEffect(() => {
         if (profileError) throw profileError;
 
         if (profileData) {
+          // Sinkronisasi Nama Pengguna asli dari database
           setNama(profileData.nama || '');
-          const level = profileData.member_level || 'free';
-          setPaket(level);
+          
+          // Sinkronisasi Level Paket (menggunakan huruf kecil sesuai isi database admin)
+          const levelAktif = profileData.member_level || 'free';
+          setPaket(levelAktif);
 
-          // 2. Ambil data kuota token dari tabel paket secara terpisah (Mencegah salah join)
-          const { data: packageData } = await supabase
+          // Langkah 2: Ambil max_token dari 'subscription_packages' berdasarkan level aktif
+          const { data: packageData, error: packageError } = await supabase
             .from('subscription_packages')
             .select('max_token')
-            .eq('level', level) // Sesuaikan jika nama kolom di Supabase bukan 'level'
+            .eq('level', levelAktif)
             .maybeSingle();
 
-          if (packageData) {
+          if (!packageError && packageData) {
             setMaxToken(packageData.max_token);
           } else {
-            // Hardcode fallback sementara berdasarkan logika Anda
-            setMaxToken(level === 'free' ? 50 : 10000);
+            // Pengaman (Fallback) jika baris paket di database belum dibuat/tidak cocok
+            setMaxToken(levelAktif === 'free' ? 50 : 10000);
           }
         }
       } catch (err: any) {
-        console.error("Gagal memuat data profil:", err.message);
+        console.error("Gagal memuat data profil & paket:", err.message);
       }
     }
   };
