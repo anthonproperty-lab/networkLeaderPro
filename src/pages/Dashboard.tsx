@@ -4,6 +4,7 @@ import { People, NotificationImportant, Campaign, Schedule, WhatsApp } from '@mu
 import { supabase } from '../services/supabaseClient';
 import { useAuthStore } from '../stores/authStore';
 import { useNavigate } from 'react-router-dom';
+import { QRCodeSVG } from 'qrcode.react';
 
 export const Dashboard: React.FC = () => {
   const user = useAuthStore((state) => state.user);
