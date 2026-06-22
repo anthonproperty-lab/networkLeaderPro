@@ -98,7 +98,7 @@ export const Dashboard: React.FC = () => {
       setStats({
         kontak: kontakCount.count || 0,
         followup: followupCount.count || 0,
-        campaign: kampanyeCount.count || 0, // Disesuaikan nama properti kampanye jika diperlukan
+        kampanye: kampanyeCount.count || 0, // Disesuaikan nama properti kampanye jika diperlukan
         notif: notifCount.count || 0,
       });
 
