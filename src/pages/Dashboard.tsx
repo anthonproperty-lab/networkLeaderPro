@@ -106,41 +106,39 @@ export const Dashboard: React.FC = () => {
 
   // 💡 PERBAIKAN 2: Menggunakan useEffect untuk memuat data awal dan mengaktifkan Listener Real-Time Supabase
   useEffect(() => {
-    fetchDashboardData(true);
+  fetchDashboardData(true);
 
-    if (!user) return;
+  if (!user) return;
 
-    // Aktifkan pemantauan perubahan tabel whatsapp_sessions secara instan (Real-time)
-    const channel = supabase
-      .channel('schema-db-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'whatsapp_sessions',
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload: any) => {
-          console.log('Perubahan data sesi WA terdeteksi secara real-time:', payload);
-          // Jika ada perubahan baris (baik status atau qr_string baru masuk), langsung perbarui UI
-          if (payload.new) {
-            setWaSession({
-              status: payload.new.status || 'DISCONNECTED',
-              qrString: payload.new.qr_string || ''
-            });
-          }
+  const channel = supabase
+    .channel('schema-db-changes')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'whatsapp_sessions',
+        filter: `user_id=eq.${user.id}`,
+      },
+      (payload: any) => {
+        console.log('Perubahan data sesi WA terdeteksi secara real-time:', payload);
+        
+        if (payload.new) {
+          setWaSession({
+            status: payload.new.status || 'DISCONNECTED',
+            qrString: payload.new.qr_string || '' // 💻 SUDAH DIPERBAIKI: Menggunakan qr_string bukan qrString
+          });
         }
-      )
-      .subscribe();
+      }
+    )
+    .subscribe();
 
-    // Matikan pemantauan saat pengguna meninggalkan halaman dasbor untuk menghemat koneksi
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, fetchDashboardData]);
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, [user, fetchDashboardData]);
 
-  const handleHubungkanWhatsApp = async () => {
+ const handleHubungkanWhatsApp = async () => {
     if (!user) return;
     try {
       setTriggerLoading(true);
@@ -156,9 +154,15 @@ export const Dashboard: React.FC = () => {
 
       if (error) throw error;
       
-      // 💡 PERBAIKAN: Langsung panggil data terbaru tanpa animasi loading penuh agar tombol berganti status jadi "Menyiapkan QR..."
       await fetchDashboardData(false);
       console.log('Sinyal PAIRING dikirim. Menunggu WA-Engine lokal memproses...');
+
+      // ⏱️ FALLBACK CADANGAN: Ambil data ulang secara manual setelah 5 detik 
+      // untuk mengantisipasi jika Realtime Supabase gratisan Anda sedang lambat / delay.
+      setTimeout(() => {
+        fetchDashboardData(false);
+      }, 5000);
+
     } catch (err: any) {
       console.error('Gagal memicu tautan WhatsApp:', err.message);
     } finally {
