@@ -26,7 +26,6 @@ export const Dashboard: React.FC = () => {
   });
   const [triggerLoading, setTriggerLoading] = useState(false);
 
-  // Menggunakan useRef agar interval polling selalu mendapatkan status waSession paling mutakhir tanpa re-create effect
   const waSessionRef = useRef(waSession);
   useEffect(() => {
     waSessionRef.current = waSession;
@@ -98,7 +97,7 @@ export const Dashboard: React.FC = () => {
       setStats({
         kontak: kontakCount.count || 0,
         followup: followupCount.count || 0,
-        kampanye: kampanyeCount.count || 0, // Disesuaikan nama properti kampanye jika diperlukan
+        kampanye: kampanyeCount.count || 0,
         notif: notifCount.count || 0,
       });
 
@@ -114,7 +113,6 @@ export const Dashboard: React.FC = () => {
 
     if (!user) return;
 
-    // Real-time listener Supabase dengan pemetaan snake_case database yang konsisten
     const channel = supabase
       .channel('schema-db-changes')
       .on(
@@ -137,7 +135,6 @@ export const Dashboard: React.FC = () => {
       )
       .subscribe();
 
-    // Polling Cadangan (Bekerja otomatis jika Real-time WebSocket Supabase tersendat di HP)
     const intervalCadangan = setInterval(() => {
       const currentSession = waSessionRef.current;
       if (currentSession.status === 'PAIRING' && !currentSession.qrString) {
