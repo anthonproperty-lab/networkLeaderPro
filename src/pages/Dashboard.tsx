@@ -262,15 +262,43 @@ export const Dashboard: React.FC = () => {
           sx={{ height: 10, borderRadius: 5, bgcolor: 'action.hover' }}
         />
 
-        {/* 💡 AREA ALERT QR CODE: Muncul otomatis jika teman Anda klik tombol di atas dan Engine telah mengunggah string QR */}
-        {waSession.status === 'PAIRING' && waSession.qrString && (
-          <Box mt={3} p={2} border="1px dashed" borderColor="warning.main" borderRadius="8px" bgcolor="action.hover" textAlign="center">
-            <Typography variant="body2" color="warning.main" sx={{ fontWeight: 'bold', mb: 1 }}>
-              ⚙️ Sesi QR Code Terdeteksi! Silakan arahkan teman Anda ke menu Pengaturan/Sesi di aplikasi untuk memindai QR Code ini agar nomornya aktif.
-            </Typography>
-            {/* SUNTIKKAN: String qr-code `waSession.qrString` ke library renderer QR pilihan Anda di sini */}
-          </Box>
-        )}
+       {/* 💡 AREA ALERT QR CODE: Menampilkan QR Code asli secara real-time */}
+{waSession.status === 'PAIRING' && waSession.qrString && (
+  <Box 
+    mt={3} 
+    p={3} 
+    border="2px dashed" 
+    borderColor="primary.main" 
+    borderRadius="12px" 
+    bgcolor="action.hover" 
+    display="flex" 
+    flexDirection="column" 
+    alignItems="center" 
+    justifyContent="center"
+    textAlign="center"
+  >
+    <Typography variant="body1" color="primary.main" sx={{ fontWeight: 'bold', mb: 2 }}>
+      📲 WhatsApp Siap Ditautkan!
+    </Typography>
+    <Typography variant="body2" color="text.secondary" sx={{ mb: 3, maxWidth: '400px' }}>
+      Buka WhatsApp di HP Anda -> Menu Perangkat Tertaut -> Tautkan Perangkat, lalu arahkan kamera HP Anda ke QR Code di bawah ini.
+    </Typography>
+
+    {/* 💡 RENDERER QR CODE UTAMA */}
+    <Box p={2} bgcolor="#ffffff" borderRadius="8px" display="inline-flex" boxShadow={1}>
+      <QRCodeSVG 
+        value={waSession.qrString} 
+        size={200} 
+        level={"H"} // High error correction agar scan lebih cepat & akurat
+        includeMargin={true}
+      />
+    </Box>
+
+    <Typography variant="caption" color="text.secondary" sx={{ mt: 2, fontStyle: 'italic' }}>
+      QR Code akan diperbarui otomatis oleh sistem jika kedaluwarsa.
+    </Typography>
+  </Box>
+)}
       </Card>
       
       <Grid container spacing={3}>
