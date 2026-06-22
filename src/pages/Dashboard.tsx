@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react'; // 💡 PERBAIKAN: Import useCallback
+import React, { useEffect, useState, useCallback, useRef } from 'react'; 
 import { Grid, Card, CardContent, Typography, Box, CircularProgress, LinearProgress, Chip, Button } from '@mui/material'; 
 import { People, NotificationImportant, Campaign, Schedule, WhatsApp } from '@mui/icons-material'; 
 import { supabase } from '../services/supabaseClient';
@@ -26,7 +26,12 @@ export const Dashboard: React.FC = () => {
   });
   const [triggerLoading, setTriggerLoading] = useState(false);
 
-  // 💡 PERBAIKAN 1: Bungkus fungsi pengambil data dengan useCallback agar bisa dipanggil berulang kali secara aman
+  // Menggunakan useRef agar interval polling selalu mendapatkan status waSession paling mutakhir tanpa re-create effect
+  const waSessionRef = useRef(waSession);
+  useEffect(() => {
+    waSessionRef.current = waSession;
+  }, [waSession]);
+
   const fetchDashboardData = useCallback(async (showLoading = true) => {
     if (!user) {
       setLoading(false);
@@ -93,7 +98,7 @@ export const Dashboard: React.FC = () => {
       setStats({
         kontak: kontakCount.count || 0,
         followup: followupCount.count || 0,
-        kampanye: kampanyeCount.count || 0,
+        campaign: kampanyeCount.count || 0, // Disesuaikan nama properti kampanye jika diperlukan
         notif: notifCount.count || 0,
       });
 
@@ -104,41 +109,50 @@ export const Dashboard: React.FC = () => {
     }
   }, [user]);
 
-  // 💡 PERBAIKAN 2: Menggunakan useEffect untuk memuat data awal dan mengaktifkan Listener Real-Time Supabase
   useEffect(() => {
-  fetchDashboardData(true);
+    fetchDashboardData(true);
 
-  if (!user) return;
+    if (!user) return;
 
-  const channel = supabase
-    .channel('schema-db-changes')
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'whatsapp_sessions',
-        filter: `user_id=eq.${user.id}`,
-      },
-      (payload: any) => {
-        console.log('Perubahan data sesi WA terdeteksi secara real-time:', payload);
-        
-        if (payload.new) {
-          setWaSession({
-            status: payload.new.status || 'DISCONNECTED',
-            qrString: payload.new.qr_string || '' // 💻 SUDAH DIPERBAIKI: Menggunakan qr_string bukan qrString
-          });
+    // Real-time listener Supabase dengan pemetaan snake_case database yang konsisten
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'whatsapp_sessions',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload: any) => {
+          console.log('Perubahan data sesi WA terdeteksi secara real-time:', payload);
+          if (payload.new) {
+            setWaSession({
+              status: payload.new.status || 'DISCONNECTED',
+              qrString: payload.new.qr_string || ''
+            });
+          }
         }
+      )
+      .subscribe();
+
+    // Polling Cadangan (Bekerja otomatis jika Real-time WebSocket Supabase tersendat di HP)
+    const intervalCadangan = setInterval(() => {
+      const currentSession = waSessionRef.current;
+      if (currentSession.status === 'PAIRING' && !currentSession.qrString) {
+        console.log('Mengambil ulang data QR secara berkala via backup polling...');
+        fetchDashboardData(false);
       }
-    )
-    .subscribe();
+    }, 5000);
 
-  return () => {
-    supabase.removeChannel(channel);
-  };
-}, [user, fetchDashboardData]);
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(intervalCadangan);
+    };
+  }, [user, fetchDashboardData]);
 
- const handleHubungkanWhatsApp = async () => {
+  const handleHubungkanWhatsApp = async () => {
     if (!user) return;
     try {
       setTriggerLoading(true);
@@ -156,13 +170,6 @@ export const Dashboard: React.FC = () => {
       
       await fetchDashboardData(false);
       console.log('Sinyal PAIRING dikirim. Menunggu WA-Engine lokal memproses...');
-
-      // ⏱️ FALLBACK CADANGAN: Ambil data ulang secara manual setelah 5 detik 
-      // untuk mengantisipasi jika Realtime Supabase gratisan Anda sedang lambat / delay.
-      setTimeout(() => {
-        fetchDashboardData(false);
-      }, 5000);
-
     } catch (err: any) {
       console.error('Gagal memicu tautan WhatsApp:', err.message);
     } finally {
@@ -289,7 +296,6 @@ export const Dashboard: React.FC = () => {
           sx={{ height: 10, borderRadius: 5, bgcolor: 'action.hover' }}
         />
 
-        {/* 💡 AREA ALERT QR CODE: Sekarang otomatis memuat kode QR tanpa perlu memuat ulang browser */}
         {waSession.status === 'PAIRING' && (
           <Box 
             mt={3} 
@@ -308,7 +314,7 @@ export const Dashboard: React.FC = () => {
               📲 WhatsApp Siap Ditautkan!
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3, maxWidth: '400px' }}>
-              Buka WhatsApp di HP Anda -> Menu Perangkat Tertaut -> Tautkan Perangkat, lalu arahkan kamera HP Anda ke QR Code di bawah ini.
+              Buka WhatsApp di HP Anda -> Perangkat Tertaut -> Tautkan Perangkat, lalu arahkan kamera HP Anda ke QR Code di bawah ini.
             </Typography>
 
             <Box p={2} bgcolor="#ffffff" borderRadius="8px" display="inline-flex" boxShadow={1}>
