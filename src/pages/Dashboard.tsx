@@ -4,7 +4,7 @@ import { People, NotificationImportant, Campaign, Schedule, WhatsApp } from '@mu
 import { supabase } from '../services/supabaseClient';
 import { useAuthStore } from '../stores/authStore';
 import { useNavigate } from 'react-router-dom';
-import { QRCodeSVG } from 'qrcode.react';
+
 
 export const Dashboard: React.FC = () => {
   const user = useAuthStore((state) => state.user);
@@ -95,14 +95,14 @@ export const Dashboard: React.FC = () => {
 
       const [kontakCount, followupCount, kampanyeCount, notifCount] = statsRes;
       setStats({
-        kontak: kontakCount.count || 0,
-        followup: followupCount.count || 0,
-        kampanye: kampanyeCount.count || 0,
-        notif: notifCount.count || 0,
-      });
+  kontak: kontakCount?.count ?? 0,
+  followup: followupCount?.count ?? 0,
+  kampanye: kampanyeCount?.count ?? 0,
+  notif: notifCount?.count ?? 0,
+});
 
-    } catch (error: any) {
-      console.error('Gagal mengambil data dashboard:', error.message);
+    } catch (error) {
+      console.error(error);
     } finally {
       if (showLoading) setLoading(false);
     }
@@ -316,12 +316,15 @@ export const Dashboard: React.FC = () => {
 
             <Box p={2} bgcolor="#ffffff" borderRadius="8px" display="inline-flex" boxShadow={1}>
               {waSession.qrString ? (
-                <QRCodeSVG 
-                  value={waSession.qrString} 
-                  size={200} 
-                  level={"H"} 
-                  includeMargin={true}
-                />
+               <img
+  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+    waSession.qrString
+  )}`}
+  alt="QR WhatsApp"
+  width={200}
+  height={200}
+  style={{ display: 'block' }}
+/>
               ) : (
                 <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" width={200} height={200} gap={1}>
                   <CircularProgress size={30} />
