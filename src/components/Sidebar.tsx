@@ -63,8 +63,8 @@ const drawerContent = (
     src="/logo.png"
     alt="Network Leader Pro"
     sx={{
-      width: 90,
-      maxWidth: '60%',
+      width: 120,
+      maxWidth: '90%',
       height: 'auto'
     }}
   />
