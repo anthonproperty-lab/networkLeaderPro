@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Grid, Card, CardContent, Typography, Box, CircularProgress, LinearProgress, Chip } from '@mui/material'; // 💡 TAMBAHAN: Import LinearProgress & Chip di sini
-import { People, NotificationImportant, Campaign, Schedule } from '@mui/icons-material';
+import { Grid, Card, CardContent, Typography, Box, CircularProgress, LinearProgress, Chip, Button } from '@mui/material'; // 💡 PERBAIKAN: Import Button di sini
+import { People, NotificationImportant, Campaign, Schedule, WhatsApp } from '@mui/icons-material'; // 💡 TAMBAHAN: WhatsApp Icon
 import { supabase } from '../services/supabaseClient';
 import { useAuthStore } from '../stores/authStore';
 import { useNavigate } from 'react-router-dom';
@@ -12,13 +12,19 @@ export const Dashboard: React.FC = () => {
   const [stats, setStats] = useState({ kontak: 0, followup: 0, kampanye: 0, notif: 0 });
   const [loading, setLoading] = useState(true);
 
-  // 💡 PERBAIKAN 1: Buat State baru agar data profil & paket bisa dibaca oleh UI JSX di bawah
   const [quotaData, setQuotaData] = useState({
     memberLevel: 'FREE',
     tokenUsed: 0,
     maxToken: 100,
     isBlocked: false
   });
+
+  // 💡 TAMBAHAN STATE: Untuk memantau status sesi WA dan mengambil QR String
+  const [waSession, setWaSession] = useState({
+    status: 'DISCONNECTED',
+    qrString: ''
+  });
+  const [triggerLoading, setTriggerLoading] = useState(false);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -30,13 +36,18 @@ export const Dashboard: React.FC = () => {
       try {
         setLoading(true);
 
-        // 1. Ambil data profil tenant dan statistik secara paralel
-        const [profilRes, statsRes] = await Promise.all([
+        // 1. Ambil data profil, statistik, dan sesi WhatsApp secara paralel
+        const [profilRes, waRes, statsRes] = await Promise.all([
           supabase
             .from('profiles')
             .select('member_level, token_used, is_blocked')
             .eq('id', user.id)
             .single(),
+          supabase
+            .from('whatsapp_sessions')
+            .select('status, qr_string')
+            .eq('user_id', user.id)
+            .maybeSingle(),
           Promise.all([
             supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
             supabase.from('followups').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('status', 'Belum Selesai'),
@@ -47,8 +58,16 @@ export const Dashboard: React.FC = () => {
 
         if (profilRes.error) throw profilRes.error;
 
+        // Simpan data sesi WA jika sudah ada di database
+        if (waRes.data) {
+          setWaSession({
+            status: waRes.data.status || 'DISCONNECTED',
+            qrString: waRes.data.qr_string || ''
+          });
+        }
+
         // 2. Ambil data limit paket berdasarkan level member (pastikan huruf kecil)
-        let maxTokenValue = 50; // Default terkecil untuk paket free
+        let maxTokenValue = 50; 
         const levelAktif = profilRes.data?.member_level?.toLowerCase() || 'free';
 
         if (profilRes.data) {
@@ -56,18 +75,17 @@ export const Dashboard: React.FC = () => {
             .from('subscription_packages')
             .select('max_token')
             .eq('level', levelAktif)
-            .maybeSingle(); // Menggunakan maybeSingle agar lebih aman jika data kosong
+            .maybeSingle();
 
           if (!paketError && paketRes) {
             maxTokenValue = paketRes.max_token;
           } else {
-            // Fallback manual jika tabel subscription_packages belum merespon
             if (levelAktif === 'standard') maxTokenValue = 2000;
             if (levelAktif === 'vip') maxTokenValue = 10000;
           }
         }
 
-        // 3. Simpan data kuota ke state dengan aman
+        // 3. Simpan data kuota ke state
         setQuotaData({
           memberLevel: levelAktif,
           tokenUsed: profilRes.data?.token_used || 0,
@@ -80,7 +98,7 @@ export const Dashboard: React.FC = () => {
         setStats({
           kontak: kontakCount.count || 0,
           followup: followupCount.count || 0,
-          campaign: kampanyeCount.count || 0, // Sesuaikan properti dari 'kampanye' ke 'campaign' jika diperlukan
+          kampanye: kampanyeCount.count || 0,
           notif: notifCount.count || 0,
         });
 
@@ -93,6 +111,32 @@ export const Dashboard: React.FC = () => {
 
     fetchDashboardData();
   }, [user]);
+
+  // 💡 FUNGSI TOMBOL: Memicu WA-Engine lokal memproses pembuatan QR Baru
+  const handleHubungkanWhatsApp = async () => {
+    if (!user) return;
+    try {
+      setTriggerLoading(true);
+      // Daftarkan atau ubah status antrean sesi ke 'PAIRING' di Supabase
+      const { error } = await supabase
+        .from('whatsapp_sessions')
+        .upsert({
+          user_id: user.id,
+          status: 'PAIRING',
+          qr_string: '', // kosongkan dulu sampai diisi oleh engine lokal
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' });
+
+      if (error) throw error;
+      
+      setWaSession((prev) => ({ ...prev, status: 'PAIRING' }));
+      console.log('Sinyal PAIRING dikirim. Menunggu WA-Engine lokal memproses...');
+    } catch (err: any) {
+      console.error('Gagal memicu tautan WhatsApp:', err.message);
+    } finally {
+      setTriggerLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -109,72 +153,124 @@ export const Dashboard: React.FC = () => {
     { title: 'Notifikasi Baru', val: stats.notif, icon: <NotificationImportant fontSize="large" color="error" />, link: '/notifications' },
   ];
 
-  // Hitung persentase pemakaian token untuk LinearProgress
   const nilaiProgress = quotaData.maxToken > 0 ? (quotaData.tokenUsed / quotaData.maxToken) * 100 : 0;
   
+  // Tentukan warna chip status WhatsApp
+  const getWaChipColor = (status: string) => {
+    if (status === 'CONNECTED') return 'success';
+    if (status === 'PAIRING') return 'warning';
+    return 'default';
+  };
+
   return (
     <Box p={3}>
       {/* ⚠️ BANNER PEMBERITAHUAN JIKA USER DI-BLOCK */}
-     {quotaData.isBlocked && (
-  <Box 
-    mb={3} 
-    p={2} 
-    bgcolor="#ff7675" 
-    borderRadius="8px" 
-    color="#fff" 
-    display="flex" 
-    justifyContent="space-between" 
-    alignItems="center"
-    flexWrap="wrap"
-    gap={2}
-  >
-    <Typography sx={{ fontWeight: 'bold' }}>
-      ⚠️ Akun Anda Ditangguhkan! Kuota token pengiriman pesan telah habis. Silakan hubungi admin untuk melakukan perpanjangan paket.
-    </Typography>
-    <Button 
-      variant="contained" 
-      color="success"
-      size="small"
-      onClick={() => {
-        const nomorAdmin = "628xxxxxxxxxx"; // 📞 Ganti dengan nomor WhatsApp Anda (awali dengan 62)
-        const pesan = encodeURIComponent(`Halo Admin, akun saya ditangguhkan karena kuota token habis. Saya ingin konfirmasi untuk upgrade/isi ulang paket.\n\nEmail Akun: ${user?.email}`);
-        window.open(`https://wa.me/${nomorAdmin}?text=${pesan}`, '_blank');
-      }}
-      sx={{ bgcolor: '#2ecc71', '&:hover': { bgcolor: '#27ae60' }, fontWeight: 'bold' }}
-    >
-      Hubungi Admin via WA
-    </Button>
-  </Box>
-)}
+      {quotaData.isBlocked && (
+        <Box 
+          mb={3} 
+          p={2} 
+          bgcolor="#ff7675" 
+          borderRadius="8px" 
+          color="#fff" 
+          display="flex" 
+          justifyContent="space-between" 
+          alignItems="center"
+          flexWrap="wrap"
+          gap={2}
+        >
+          <Typography sx={{ fontWeight: 'bold' }}>
+            ⚠️ Akun Anda Ditangguhkan! Kuota token pengiriman pesan telah habis. Silakan hubungi admin untuk melakukan perpanjangan paket.
+          </Typography>
+          <Button 
+            variant="contained" 
+            color="success"
+            size="small"
+            onClick={() => {
+              const nomorAdmin = "628xxxxxxxxxx"; 
+              const pesan = encodeURIComponent(`Halo Admin, akun saya ditangguhkan karena kuota token habis. Saya ingin konfirmasi untuk upgrade/isi ulang paket.\n\nEmail Akun: ${user?.email}`);
+              window.open(`https://wa.me/${nomorAdmin}?text=${pesan}`, '_blank');
+            }}
+            sx={{ bgcolor: '#2ecc71', '&:hover': { bgcolor: '#27reactae60' }, fontWeight: 'bold' }}
+          >
+            Hubungi Admin via WA
+          </Button>
+        </Box>
+      )}
 
       <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', color: 'text.primary' }}>
         Dasbor Ringkasan Analitik
       </Typography>
 
-      {/* 💡 PERBAIKAN 3: Memasukkan Widget Kuota ke dalam wadah return utama, tepat di atas Grid Cards */}
+      {/* 💡 AREA UTAMA: Widget Kuota & Integrasi Sesi Multi-Device */}
       <Card sx={{ mb: 4, p: 3, borderRadius: '12px', backgroundColor: 'background.paper', backgroundImage: 'none' }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={1.5}>
-          <Box display="flex" alignItems="center" gap={1}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
-              Status Paket:
-            </Typography>
-            <Chip 
-              label={quotaData.memberLevel.toUpperCase()} 
-              color={quotaData.memberLevel === 'vip' ? 'secondary' : 'primary'} 
-              size="small" 
-              sx={{ fontWeight: 'bold' }}
-            />
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2} flexWrap="wrap" gap={2}>
+          <Box display="flex" alignItems="center" gap={3} flexWrap="wrap">
+            <Box display="flex" alignItems="center" gap={1}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+                Status Paket:
+              </Typography>
+              <Chip 
+                label={quotaData.memberLevel.toUpperCase()} 
+                color={quotaData.memberLevel === 'vip' ? 'secondary' : 'primary'} 
+                size="small" 
+                sx={{ fontWeight: 'bold' }}
+              />
+            </Box>
+
+            {/* 💡 WIDGET STATUS KONEKSI WHATSAPP */}
+            <Box display="flex" alignItems="center" gap={1}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+                Device WA:
+              </Typography>
+              <Chip 
+                label={waSession.status} 
+                color={getWaChipColor(waSession.status)} 
+                size="small" 
+                sx={{ fontWeight: 'bold' }}
+              />
+            </Box>
           </Box>
-          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
-            {quotaData.tokenUsed} / {quotaData.maxToken} Token Digunakan
-          </Typography>
+
+          {/* 💡 INDUK TOMBOL HUBUNGKAN WHATSAPP */}
+          <Box display="flex" alignItems="center" gap={2}>
+            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+              {quotaData.tokenUsed} / {quotaData.maxToken} Token Digunakan
+            </Typography>
+            
+            <Button
+              variant="contained"
+              color={waSession.status === 'CONNECTED' ? 'success' : 'primary'}
+              size="small"
+              startIcon={triggerLoading ? <CircularProgress size={16} color="inherit" /> : <WhatsApp />}
+              disabled={triggerLoading || waSession.status === 'CONNECTED'}
+              onClick={handleHubungkanWhatsApp}
+              sx={{ fontWeight: 'bold', textTransform: 'none', borderRadius: '8px' }}
+            >
+              {waSession.status === 'CONNECTED' 
+                ? 'WhatsApp Terhubung' 
+                : waSession.status === 'PAIRING' 
+                  ? 'Menyiapkan QR...' 
+                  : 'Hubungkan WhatsApp'}
+            </Button>
+          </Box>
         </Box>
+
         <LinearProgress 
           variant="determinate" 
-          value={nilaiProgress > 100 ? 100 : nilaiProgress} // Menjaga agar bar tidak overflow jika data melebihi limit
+          value={nilaiProgress > 100 ? 100 : nilaiProgress} 
           color={quotaData.tokenUsed >= quotaData.maxToken * 0.9 ? "error" : "primary"}
           sx={{ height: 10, borderRadius: 5, bgcolor: 'action.hover' }}
         />
+
+        {/* 💡 AREA ALERT QR CODE: Muncul otomatis jika teman Anda klik tombol di atas dan Engine telah mengunggah string QR */}
+        {waSession.status === 'PAIRING' && waSession.qrString && (
+          <Box mt={3} p={2} border="1px dashed" borderColor="warning.main" borderRadius="8px" bgcolor="action.hover" textAlign="center">
+            <Typography variant="body2" color="warning.main" sx={{ fontWeight: 'bold', mb: 1 }}>
+              ⚙️ Sesi QR Code Terdeteksi! Silakan arahkan teman Anda ke menu Pengaturan/Sesi di aplikasi untuk memindai QR Code ini agar nomornya aktif.
+            </Typography>
+            {/* SUNTIKKAN: String qr-code `waSession.qrString` ke library renderer QR pilihan Anda di sini */}
+          </Box>
+        )}
       </Card>
       
       <Grid container spacing={3}>
