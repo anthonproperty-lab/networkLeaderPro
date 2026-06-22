@@ -311,8 +311,8 @@ export const Dashboard: React.FC = () => {
               📲 WhatsApp Siap Ditautkan!
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3, maxWidth: '400px' }}>
-              Buka WhatsApp di HP Anda -> Perangkat Tertaut -> Tautkan Perangkat, lalu arahkan kamera HP Anda ke QR Code di bawah ini.
-            </Typography>
+  Buka WhatsApp di HP Anda &rarr; Perangkat Tertaut &rarr; Tautkan Perangkat, lalu arahkan kamera HP Anda ke QR Code di bawah ini.
+</Typography>
 
             <Box p={2} bgcolor="#ffffff" borderRadius="8px" display="inline-flex" boxShadow={1}>
               {waSession.qrString ? (
