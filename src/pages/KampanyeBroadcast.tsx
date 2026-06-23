@@ -215,21 +215,38 @@ export const KampanyeBroadcast: React.FC = () => {
     <Box p={1}>
       {/* HEADER */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Box>
-          <Typography variant="h5" sx={{ fontWeight: 'bold' }}>Kampanye Broadcast Massal</Typography>
-          <Typography variant="body2" color="text.secondary">
-            Konfigurasi variasi isi tampilan pesan dan waktu peluncuran terjadwal.
-          </Typography>
-        </Box>
-        <Button 
-          variant="contained" 
-          startIcon={<Add />} 
-          onClick={handleOpenModal}
-          sx={{ bgcolor: '#20bf6b', '&:hover': { bgcolor: '#199d56' }, textTransform: 'none' }}
-        >
-          Buat Banyak Kampanye
-        </Button>
-      </Box>
+  <Box>
+    <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+      Kampanye Broadcast Massal
+    </Typography>
+    <Typography variant="body2" color="text.secondary">
+      Konfigurasi variasi isi tampilan pesan dan waktu peluncuran terjadwal.
+    </Typography>
+  </Box>
+
+  <Box display="flex" gap={1}>
+    <Button
+      variant="outlined"
+      onClick={() => navigate('/template-pesan')}
+      sx={{ textTransform: 'none' }}
+    >
+      Template
+    </Button>
+
+    <Button
+      variant="contained"
+      startIcon={<Add />}
+      onClick={handleOpenModal}
+      sx={{
+        bgcolor: '#20bf6b',
+        '&:hover': { bgcolor: '#199d56' },
+        textTransform: 'none'
+      }}
+    >
+      Buat Banyak Kampanye
+    </Button>
+  </Box>
+</Box>
 
       {/* TABEL DATA UTAMA */}
       <Card>
