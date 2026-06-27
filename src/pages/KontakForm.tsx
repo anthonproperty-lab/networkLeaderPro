@@ -93,6 +93,7 @@ export const KontakForm: React.FC<{ mode: 'create' | 'edit' }> = ({ mode }) => {
         nomor_whatsapp: formData.nomor_whatsapp,
         status: formData.status || 'Baru',
         catatan: formData.catatan || null
+        group_id: formData.tag_id || null
       };
 
       let contactId = id;
