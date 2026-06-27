@@ -147,69 +147,67 @@ export const KampanyeBroadcast: React.FC = () => {
     setOpenModal(true);
   };
 
-  // 3. Simpan Banyak Kampanye Sekaligus (Bulk Insert) ke Tabel 'broadcasts'
-  const handleSimpanBanyakBroadcast = async (formData: MultiBroadcastFormInput) => {
-    if (!user) return;
-    setLoading(true);
-    try {
-      const payloadInsert = [];
-
-      for (const item of formData.campaigns) {
-        let totalTarget = 0;
-        
-        if (item.target_tipe === 'semua') {
-          // 🔒 PERBAIKAN: Hitung jumlah kontak hanya milik user ini sendiri
-          const { count } = await supabase
-            .from('contacts')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', user.id);
-            
-          totalTarget = count || 0;
-        } else if (item.group_id) {
-          // Jika ditargetkan ke label/grup tertentu
-          const { count, error: errCount } = await supabase
-            .from('contact_tags')
-            .select('*', { count: 'exact', head: true })
-            .eq('tag_id', item.group_id);
-            
-          if (errCount) throw errCount;
-          totalTarget = count || 0;
-        }
-
-        if (totalTarget === 0) {
-          throw new Error(`Target kontak kosong pada variasi: "${item.nama_kampanye || 'Tanpa Nama'}".`);
-        }
-
-        const skrg = new Date();
-        const waktuKirim = new Date(item.scheduled_at);
-        const statusKampanye = waktuKirim > skrg ? 'Scheduled' : 'Pending';
-
-        payloadInsert.push({
-          user_id: user.id, // Menyimpan pemilik data kampanye
-          nama_kampanye: item.nama_kampanye,
-          target_tipe: item.target_tipe,
-          group_id: item.target_tipe === 'grup' ? item.group_id : null,
-          pesan: item.pesan,
-          total_target: totalTarget,
-          terkirim: 0,
-          status: statusKampanye,
-          scheduled_at: waktuKirim.toISOString(), 
-          failed: 0
-        });
+// 3. Simpan Banyak Kampanye Sekaligus (Bulk Insert) ke Tabel 'broadcasts'
+const handleSimpanBanyakBroadcast = async (formData: MultiBroadcastFormInput) => {
+  if (!user) return;
+  setLoading(true);
+  try {
+    const payloadInsert = [];
+    for (const item of formData.campaigns) {
+      let totalTarget = 0;
+      if (item.target_tipe === 'semua') {
+        const { count } = await supabase
+          .from('contacts')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id);
+        totalTarget = count || 0;
+      } else if (item.group_id) {
+        const { count, error: errCount } = await supabase
+          .from('contact_tags')
+          .select('*', { count: 'exact', head: true })
+          .eq('tag_id', item.group_id);
+        if (errCount) throw errCount;
+        totalTarget = count || 0;
       }
 
-      const { error } = await supabase.from('broadcasts').insert(payloadInsert);
-      if (error) throw error;
+      if (totalTarget === 0) {
+        throw new Error(`Target kontak kosong pada variasi: "${item.nama_kampanye || 'Tanpa Nama'}".`);
+      }
 
-      toast.success(`${payloadInsert.length} Kampanye terjadwal berhasil disimpan!`);
-      setOpenModal(false);
-      fetchData();
-    } catch (err: any) { // 💡 PERBAIKAN: Penempatan letak catch block yang salah sintaksis sebelumnya
-      toast.error(`Gagal menyimpan: ${err.message}`);
-    } finally {
-      setLoading(false);
+      // 🛑 VALIDASI & SINKRONISASI FORMAT TEKS (Hanya Teks & Support Multi-Tag Name)
+      // Memastikan format penulisan tag {name}, {Name}, [name], atau [Name] diseragamkan ke format standar backend Anda (misal: {name})
+      let pesanTeksHanya = item.pesan;
+      pesanTeksHanya = pesanTeksHanya.replace(/\{name\}|\{Name\}|\[name\]|\[Name\]/g, '{name}');
+
+      const skrg = new Date();
+      const waktuKirim = new Date(item.scheduled_at);
+      const statusKampanye = waktuKirim > skrg ? 'Scheduled' : 'Pending';
+
+      payloadInsert.push({
+        user_id: user.id,
+        nama_kampanye: item.nama_kampanye,
+        target_tipe: item.target_tipe,
+        group_id: item.target_tipe === 'grup' ? item.group_id : null,
+        pesan: pesanTeksHanya, // Menyimpan teks bersih yang sudah disinkronkan tag-nya
+        total_target: totalTarget,
+        terkirim: 0,
+        status: statusKampanye,
+        scheduled_at: waktuKirim.toISOString(),
+        failed: 0
+      });
     }
-  };
+
+    const { error } = await supabase.from('broadcasts').insert(payloadInsert);
+    if (error) throw error;
+    toast.success(`${payloadInsert.length} Kampanye terjadwal berhasil disimpan!`);
+    setOpenModal(false);
+    fetchData();
+  } catch (err: any) {
+    toast.error(`Gagal menyimpan: ${err.message}`);
+  } finally {
+    setLoading(false);
+  }
+};
   
   return (
     <Box p={1}>
@@ -464,27 +462,28 @@ export const KampanyeBroadcast: React.FC = () => {
                       />
                     </Grid>
 
-                    <Grid item xs={12} md={8}>
-                      {/* Isi Pesan */}
-                      <Controller
-                        name={`campaigns.${index}.pesan`}
-                        control={control}
-                        rules={{ required: 'Konten pesan tidak boleh kosong' }}
-                        render={({ field, fieldState: { error } }) => (
-                          <TextField
-                            {...field}
-                            fullWidth
-                            multiline
-                            rows={6}
-                            label="Isi Teks Pesan"
-                            placeholder="Tulis model isi pesan Anda di sini..."
-                            error={!!error}
-                            helperText={error?.message || 'Mendukung tag custom {name}'}
-                            InputLabelProps={{ shrink: true }}
-                          />
-                        )}
-                      />
-                    </Grid>
+ <Grid item xs={12} md={8}>
+  {/* Isi Pesan */}
+  <Controller
+    name={`campaigns.${index}.pesan`}
+    control={control}
+    rules={{ required: 'Konten pesan tidak boleh kosong' }}
+    render={({ field, fieldState: { error } }) => (
+      <TextField
+        {...field}
+        fullWidth
+        multiline
+        rows={6}
+        label="Isi Teks Pesan"
+        placeholder="Tulis model isi pesan Anda di sini..."
+        error={!!error}
+        // 💡 PERBAIKAN: Keterangan diperjelas hanya mendukung teks/URL dan multi-tag nama
+        helperText={error?.message || 'Hanya mendukung teks & URL (Foto/Video otomatis jadi link URL). Mendukung tag custom {name}, {Name}, [name], [Name]'}
+        InputLabelProps={{ shrink: true }}
+      />
+    )}
+  />
+</Grid>
                   </Grid>
                 </Card>
               );
