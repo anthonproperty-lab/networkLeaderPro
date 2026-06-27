@@ -86,16 +86,18 @@ export const KontakForm: React.FC<{ mode: 'create' | 'edit' }> = ({ mode }) => {
 
   // 3. Proses pengiriman data ke Supabase
   const onSubmit = async (formData: ContactFormValues) => {
-    try {
+    try {      
       
-      const contactPayload = {
-        nama_depan: formData.nama_depan,
-        nama_belakang: formData.nama_belakang || null,
-        nomor_whatsapp: formData.nomor_whatsapp,
-        status: formData.status || 'Baru',
-        catatan: formData.catatan || null,
-        group_id: formData.tag_id || null
-      };
+  const contactPayload = {
+  nama_depan: formData.nama_depan,
+  nama_belakang: formData.nama_belakang || null,
+  nomor_whatsapp: formData.nomor_whatsapp,
+  status: formData.status || 'Baru',
+  catatan: formData.catatan || null,
+  group_id: formData.tag_id || null
+};
+
+console.log('Payload update:', contactPayload);
 
       let contactId = id;
 
@@ -109,12 +111,15 @@ export const KontakForm: React.FC<{ mode: 'create' | 'edit' }> = ({ mode }) => {
         if (errContact) throw errContact;
         contactId = newContact.id;
       } else {
-        const { error: errUpdate } = await supabase
-          .from('contacts')
-          .update(contactPayload)
-          .eq('id', id);
+        const { data, error: errUpdate } = await supabase
+  .from('contacts')
+  .update(contactPayload)
+  .eq('id', id)
+  .select();
 
-        if (errUpdate) throw errUpdate;
+console.log('Hasil update:', data);
+
+if (errUpdate) throw errUpdate;
       }
 
       await supabase.from('contact_tags').delete().eq('contact_id', contactId);
