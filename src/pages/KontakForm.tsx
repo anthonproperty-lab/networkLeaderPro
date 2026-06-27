@@ -240,3 +240,4 @@ if (errUpdate) throw errUpdate;
 };
 
 export default KontakForm;
+
