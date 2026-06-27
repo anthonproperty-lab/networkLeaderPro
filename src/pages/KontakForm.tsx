@@ -92,7 +92,7 @@ export const KontakForm: React.FC<{ mode: 'create' | 'edit' }> = ({ mode }) => {
         nama_belakang: formData.nama_belakang || null,
         nomor_whatsapp: formData.nomor_whatsapp,
         status: formData.status || 'Baru',
-        catatan: formData.catatan || null
+        catatan: formData.catatan || null,
         group_id: formData.tag_id || null
       };
 
