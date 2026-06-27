@@ -161,14 +161,17 @@ const handleSimpanBanyakBroadcast = async (formData: MultiBroadcastFormInput) =>
           .select('*', { count: 'exact', head: true })
           .eq('user_id', user.id);
         totalTarget = count || 0;
-      } else if (item.group_id) {
-        const { count, error: errCount } = await supabase
-          .from('contact_tags')
-          .select('*', { count: 'exact', head: true })
-          .eq('tag_id', item.group_id);
-        if (errCount) throw errCount;
-        totalTarget = count || 0;
-      }
+     } else if (item.group_id) {
+  // 🔒 PERBAIKAN: Join ke tabel contacts untuk memfilter berdasarkan user_id yang sedang login
+  const { count, error: errCount } = await supabase
+    .from('contact_tags')
+    .select('*, contacts!inner(user_id)', { count: 'exact', head: true })
+    .eq('tag_id', item.group_id)
+    .eq('contacts.user_id', user.id); // Memastikan hanya kontak milik akun Anda
+    
+  if (errCount) throw errCount;
+  totalTarget = count || 0;
+}
 
       if (totalTarget === 0) {
         throw new Error(`Target kontak kosong pada variasi: "${item.nama_kampanye || 'Tanpa Nama'}".`);
